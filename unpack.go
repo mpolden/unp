@@ -52,11 +52,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	w, err := New(paths)
+	w, err := New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := w.AddWatches(); err != nil {
+	if err := w.AddWatch(paths); err != nil {
 		log.Fatal(err)
 	}
 	w.OnFile = func(e *Event, p *Path) {
