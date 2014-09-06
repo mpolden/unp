@@ -59,6 +59,9 @@ func main() {
 	if err := w.AddWatch(paths); err != nil {
 		log.Fatal(err)
 	}
-	w.OnFile = unpack
+	u := Unpack{
+		Patterns: []string{"*.r??", "*.sfv"},
+	}
+	w.OnFile = u.onFile
 	w.Serve()
 }
