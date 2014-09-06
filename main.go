@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jessevdk/go-flags"
 	"log"
 	"os"
 	"os/exec"
@@ -10,15 +11,9 @@ import (
 	"strings"
 )
 
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s path:level [path:level ...]\n",
-		os.Args[0])
-	os.Exit(1)
-}
-
-func parsePaths() ([]Path, error) {
-	paths := make([]Path, 0, len(os.Args[1:]))
-	for _, arg := range os.Args[1:] {
+func parseArgs(args []string) ([]Path, error) {
+	paths := make([]Path, 0, len(args))
+	for _, arg := range args {
 		s := strings.Split(arg, ":")
 		if len(s) != 2 {
 			return nil, fmt.Errorf("expected path:depth, got %s",
@@ -40,16 +35,23 @@ func parsePaths() ([]Path, error) {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		usage()
+	var opts struct {
+		Remove   bool     `short:"r" long:"remove" description:"Remove files after extraction"`
+		Patterns []string `short:"p" long:"patterns" description:"File patterns to process"`
 	}
+
+	args, err := flags.ParseArgs(&opts, os.Args)
+	if err != nil {
+		os.Exit(1)
+	}
+
 	if _, err := exec.LookPath("unrar"); err != nil {
 		log.Fatal(err)
 	}
 
-	paths, err := parsePaths()
+	paths, err := parseArgs(args[1:])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 	w, err := New()
@@ -60,7 +62,8 @@ func main() {
 		log.Fatal(err)
 	}
 	u := Unpack{
-		Patterns: []string{"*.r??", "*.sfv"},
+		Patterns: opts.Patterns,
+		Remove:   opts.Remove,
 	}
 	w.OnFile = u.onFile
 	w.Serve()

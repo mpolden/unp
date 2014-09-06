@@ -14,6 +14,7 @@ type Unpack struct {
 	SFV      *sfv.SFV
 	Path     string
 	Patterns []string
+	Remove   bool
 }
 
 func (u *Unpack) validEvent(e *Event) bool {
@@ -122,7 +123,9 @@ func (u *Unpack) onFile(e *Event, p *Path) {
 		log.Printf("Failed to unpack: %s", err)
 	}
 
-	if err := u.removeFiles(); err != nil {
-		log.Printf("Failed to delete files: %s", err)
+	if u.Remove {
+		if err := u.removeFiles(); err != nil {
+			log.Printf("Failed to delete files: %s", err)
+		}
 	}
 }
