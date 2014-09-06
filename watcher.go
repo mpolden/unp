@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
 type Worker struct {
 	Watcher *inotify.Watcher
 	Paths   []Path
+	OnFile  func(e *Event, path *Path)
 }
 
 type Path struct {
@@ -61,7 +60,7 @@ func (w *Worker) parentPath(name string) (*Path, bool) {
 	return nil, false
 }
 
-func (w *Worker) processCreateDir(e *Event) error {
+func (w *Worker) handleCreateDir(e *Event) error {
 	if !e.IsCreate() || !e.IsDir() {
 		return nil
 	}
@@ -76,7 +75,7 @@ func (w *Worker) processCreateDir(e *Event) error {
 	return nil
 }
 
-func (w *Worker) processCloseFile(e *Event) error {
+func (w *Worker) handleCloseFile(e *Event) error {
 	if !e.IsClose() && !e.IsCloseWrite() {
 		return nil
 	}
@@ -88,7 +87,9 @@ func (w *Worker) processCloseFile(e *Event) error {
 		log.Printf("Not processing files at this level: %s", e)
 		return nil
 	}
-	log.Printf("Process file: %s depth %d", e.Name, e.Depth())
+	if w.OnFile != nil {
+		w.OnFile(e, p)
+	}
 	return nil
 }
 
@@ -127,10 +128,10 @@ func (w *Worker) Serve() {
 		select {
 		case ev := <-w.Watcher.Event:
 			e := Event(*ev)
-			if err := w.processCreateDir(&e); err != nil {
+			if err := w.handleCreateDir(&e); err != nil {
 				log.Printf("failed to process event: %s", err)
 			}
-			if err := w.processCloseFile(&e); err != nil {
+			if err := w.handleCloseFile(&e); err != nil {
 				log.Printf("failed to process event: %s", err)
 			}
 		case err := <-w.Watcher.Error:
@@ -139,59 +140,13 @@ func (w *Worker) Serve() {
 	}
 }
 
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s path:level [path:level ...]\n",
-		os.Args[0])
-	os.Exit(1)
-}
-
-func parsePaths() ([]Path, error) {
-	paths := make([]Path, 0, len(os.Args[1:]))
-	for _, arg := range os.Args[1:] {
-		s := strings.Split(arg, ":")
-		if len(s) != 2 {
-			return nil, fmt.Errorf("expected path:depth, got %s",
-				arg)
-		}
-		path := filepath.Clean(s[0])
-		depth, err := strconv.Atoi(s[1])
-		if depth < 1 || err != nil {
-			return nil, fmt.Errorf(
-				"depth must be an positive integer")
-		}
-		p := Path{
-			Name:     path,
-			MaxDepth: depth,
-		}
-		paths = append(paths, p)
-	}
-	return paths, nil
-}
-
-func main() {
-	if len(os.Args) < 2 {
-		usage()
-	}
-	if _, err := exec.LookPath("unrar"); err != nil {
-		log.Fatal(err)
-	}
-
-	paths, err := parsePaths()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+func New(paths []Path) (*Worker, error) {
 	watcher, err := inotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	w := Worker{
+	return &Worker{
 		Paths:   paths,
 		Watcher: watcher,
-	}
-	if err := w.AddWatches(); err != nil {
-		log.Fatal(err)
-	}
-	w.Serve()
-
+	}, nil
 }
