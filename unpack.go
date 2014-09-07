@@ -17,14 +17,18 @@ type Unpack struct {
 	Remove   bool
 }
 
-func (u *Unpack) validEvent(e *Event) bool {
+func (u *Unpack) validEvent(e *Event) (bool, error) {
 	name := filepath.Base(e.Name)
 	for _, p := range u.Patterns {
-		if matched, _ := filepath.Match(p, name); matched {
-			return true
+		matched, err := filepath.Match(p, name)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (u *Unpack) findSFV() (string, error) {
@@ -95,7 +99,12 @@ func (u *Unpack) removeFiles() error {
 func (u *Unpack) onFile(e *Event, p *Path) {
 	u.Path = filepath.Dir(e.Name)
 
-	if !u.validEvent(e) {
+	valid, err := u.validEvent(e)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	if !valid {
 		return
 	}
 
