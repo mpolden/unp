@@ -108,8 +108,7 @@ func (u *Unpack) onFile(e *Event, p *Path) {
 		return
 	}
 
-	err := u.readSFV()
-	if err != nil {
+	if err := u.readSFV(); err != nil {
 		log.Print(err)
 		return
 	}
