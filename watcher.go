@@ -93,7 +93,8 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	return nil
 }
 
-func (w *Worker) AddWatch(paths []Path) error {
+func (w *Worker) AddWatch(path Path) error {
+	w.Paths = append(w.Paths, path)
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -115,11 +116,8 @@ func (w *Worker) AddWatch(paths []Path) error {
 		}
 		return nil
 	}
-	w.Paths = paths
-	for _, p := range w.Paths {
-		if err := filepath.Walk(p.Name, walkFn); err != nil {
-			return err
-		}
+	if err := filepath.Walk(path.Name, walkFn); err != nil {
+		return err
 	}
 	return nil
 }
@@ -148,5 +146,6 @@ func New() (*Worker, error) {
 	}
 	return &Worker{
 		Watcher: watcher,
+		Paths:   []Path{},
 	}, nil
 }
