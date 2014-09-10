@@ -53,9 +53,6 @@ func main() {
 		}
 	}
 
-	w.OnFile = func(e *Event, p *Path) {
-		log.Printf("Event: %s", e)
-		log.Printf("Path: %s", p)
-	}
+	w.OnFile = onFile
 	w.Serve()
 }
