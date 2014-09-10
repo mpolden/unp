@@ -16,8 +16,12 @@ type Worker struct {
 }
 
 type Path struct {
-	Name     string
-	MaxDepth int
+	Name          string
+	MaxDepth      int
+	Patterns      []string
+	Remove        bool
+	UnpackCommand string
+	PostCommand   string
 }
 
 func PathDepth(name string) int {
@@ -49,6 +53,27 @@ func (e *Event) IsClose() bool {
 
 func (e *Event) IsCloseWrite() bool {
 	return e.Mask&inotify.IN_CLOSE_WRITE == inotify.IN_CLOSE_WRITE
+}
+
+func (e *Event) Dir() string {
+	if e.IsDir() {
+		return e.Name
+	}
+	return filepath.Dir(e.Name)
+}
+
+func (p *Path) Match(name string) (bool, error) {
+	name = filepath.Base(name)
+	for _, pattern := range p.Patterns {
+		matched, err := filepath.Match(pattern, name)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (w *Worker) parentPath(name string) (*Path, bool) {
@@ -85,6 +110,13 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	}
 	if e.Depth() < p.MaxDepth {
 		log.Printf("Not processing files at this level: %s", e)
+		return nil
+	}
+	if match, err := p.Match(e.Name); !match {
+		if err != nil {
+			log.Printf("Invalid pattern: %s", err)
+		}
+		log.Printf("Skipping %s", e)
 		return nil
 	}
 	if w.OnFile != nil {
