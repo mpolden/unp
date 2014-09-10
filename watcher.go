@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"code.google.com/p/go.exp/inotify"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 type Worker struct {
@@ -21,7 +24,37 @@ type Path struct {
 	Patterns      []string
 	Remove        bool
 	UnpackCommand string
-	PostCommand   string
+	Command       string
+}
+
+type templateValues struct {
+	Path string
+	Dir  string
+	File string
+}
+
+func (p *Path) createCommand(v templateValues, tmpl string) (*exec.Cmd, error) {
+	t := template.Must(template.New("command").Parse(tmpl))
+	var b bytes.Buffer
+	if err := t.Execute(&b, v); err != nil {
+		return nil, err
+	}
+	argv := strings.Split(b.String(), " ")
+	if len(argv) == 0 {
+		return nil, fmt.Errorf("template compiled to empty command")
+	}
+	if len(argv) == 1 {
+		return exec.Command(argv[0]), nil
+	}
+	return exec.Command(argv[0], argv[1:]...), nil
+}
+
+func (p *Path) unpackCommand(v templateValues) (*exec.Cmd, error) {
+	return p.createCommand(v, p.UnpackCommand)
+}
+
+func (p *Path) command(v templateValues) (*exec.Cmd, error) {
+	return p.createCommand(v, p.Command)
 }
 
 func PathDepth(name string) int {
@@ -62,8 +95,11 @@ func (e *Event) Dir() string {
 	return filepath.Dir(e.Name)
 }
 
+func (e *Event) Base() string {
+	return filepath.Base(e.Name)
+}
+
 func (p *Path) Match(name string) (bool, error) {
-	name = filepath.Base(name)
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
 		if err != nil {
@@ -76,13 +112,13 @@ func (p *Path) Match(name string) (bool, error) {
 	return false, nil
 }
 
-func (w *Worker) parentPath(name string) (*Path, bool) {
+func (w *Worker) parentPath(name string) (Path, bool) {
 	for _, p := range w.Paths {
 		if strings.HasPrefix(name, p.Name) {
-			return &p, true
+			return p, true
 		}
 	}
-	return nil, false
+	return Path{}, false
 }
 
 func (w *Worker) handleCreateDir(e *Event) error {
@@ -112,7 +148,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 		log.Printf("Not processing files at this level: %s", e)
 		return nil
 	}
-	if match, err := p.Match(e.Name); !match {
+	if match, err := p.Match(e.Base()); !match {
 		if err != nil {
 			log.Printf("Invalid pattern: %s", err)
 		}
@@ -120,7 +156,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 		return nil
 	}
 	if w.OnFile != nil {
-		w.OnFile(e, p)
+		w.OnFile(e, &p)
 	}
 	return nil
 }
