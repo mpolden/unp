@@ -68,8 +68,15 @@ func readSFV(path string) (*sfv.SFV, error) {
 		return nil, err
 	}
 	fmt.Printf("%s\n", sfv.Path)
-	if !sfv.IsExist() {
-		return nil, fmt.Errorf("not all files exist")
+	exists := 0
+	for _, c := range sfv.Checksums {
+		if c.IsExist() {
+			exists += 1
+		}
+	}
+	if exists != len(sfv.Checksums) {
+		return nil, fmt.Errorf("only %d/%d files exist in %s", exists,
+			len(sfv.Checksums), sfv.Path)
 	}
 	return sfv, nil
 }
