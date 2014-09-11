@@ -9,6 +9,9 @@ fmt:
 test:
 	go test
 
+deps:
+	go get -d
+
 install:
 	cp -p bin/$(NAME) $(PREFIX)/bin/$(NAME)
 
