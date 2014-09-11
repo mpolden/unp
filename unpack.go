@@ -120,6 +120,10 @@ func (u *Unpack) RemoveFiles() error {
 			return err
 		}
 	}
+	log.Printf("Removing: %s", u.SFV.Path)
+	if err := os.Remove(u.SFV.Path); err != nil {
+		return err
+	}
 	return nil
 }
 
