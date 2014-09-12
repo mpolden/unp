@@ -18,6 +18,7 @@ type Worker struct {
 type Path struct {
 	Name          string
 	MaxDepth      int
+	SkipHidden    bool
 	Patterns      []string
 	Remove        bool
 	ArchiveExt    string
@@ -66,6 +67,10 @@ func (e *Event) Base() string {
 	return filepath.Base(e.Name)
 }
 
+func (e *Event) IsHidden() bool {
+	return strings.HasPrefix(e.Base(), ".")
+}
+
 func (p *Path) Match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
@@ -93,6 +98,10 @@ func (w *Worker) handleCreateDir(e *Event) error {
 		return nil
 	}
 	p, ok := w.parentPath(e.Name)
+	if p.SkipHidden && e.IsHidden() {
+		log.Printf("Skipping hidden directory: %s", e.Name)
+		return nil
+	}
 	if ok && e.Depth() <= p.MaxDepth {
 		log.Printf("Watching path: %s", e)
 		err := w.Watcher.AddWatch(e.Name, inotify.IN_ALL_EVENTS)
@@ -109,6 +118,10 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	}
 	p, ok := w.parentPath(e.Name)
 	if !ok {
+		return nil
+	}
+	if p.SkipHidden && e.IsHidden() {
+		log.Printf("Skipping hidden file: %s", e.Name)
 		return nil
 	}
 	if e.Depth() < p.MaxDepth {

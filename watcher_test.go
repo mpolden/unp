@@ -91,3 +91,18 @@ func TestParentPath(t *testing.T) {
 		t.Fatalf("Expected nil, got %+v", parent)
 	}
 }
+
+func TestIsHidden(t *testing.T) {
+	e := Event{
+		Name: "/foo/.bar",
+	}
+	if !e.IsHidden() {
+		t.Fatal("Expected true")
+	}
+	e = Event{
+		Name: "/foo/bar",
+	}
+	if e.IsHidden() {
+		t.Fatal("Expected false")
+	}
+}
