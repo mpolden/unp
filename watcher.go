@@ -117,7 +117,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	}
 	if match, err := p.Match(e.Base()); !match {
 		if err != nil {
-			log.Printf("Invalid pattern: %s", err)
+			return err
 		}
 		log.Printf("Skipping %s", e)
 		return nil
