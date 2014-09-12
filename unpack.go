@@ -113,17 +113,17 @@ func (u *Unpack) RemoveFiles() error {
 	}
 	log.Print(colorstring.Color("[yellow]Removing RAR files and SFV[reset]"))
 	for _, c := range u.SFV.Checksums {
-		log.Printf(colorstring.Color("[yellowe]Removing: %s[reset]"),
+		log.Printf(colorstring.Color("[yellow]Removing: %s[reset]"),
 			c.Path)
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	log.Printf(colorstring.Color("[red]Removing: %s[reset]"), u.SFV.Path)
+	log.Printf(colorstring.Color("[yellow]Removing: %s[reset]"), u.SFV.Path)
 	if err := os.Remove(u.SFV.Path); err != nil {
 		return err
 	}
-	log.Print(colorstring.Color("[green]Files removed[reset]"))
+	log.Print(colorstring.Color("[yellow]Files removed[reset]"))
 	return nil
 }
 
