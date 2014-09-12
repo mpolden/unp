@@ -84,7 +84,7 @@ func (p *Path) Match(name string) (bool, error) {
 	return false, nil
 }
 
-func (w *Worker) parentPath(name string) (Path, bool) {
+func (w *Worker) findPath(name string) (Path, bool) {
 	for _, p := range w.Paths {
 		if strings.HasPrefix(name, p.Name) {
 			return p, true
@@ -97,7 +97,7 @@ func (w *Worker) handleCreateDir(e *Event) error {
 	if !e.IsCreate() || !e.IsDir() {
 		return nil
 	}
-	p, ok := w.parentPath(e.Name)
+	p, ok := w.findPath(e.Name)
 	if p.SkipHidden && e.IsHidden() {
 		log.Printf("Skipping hidden directory: %s", e.Name)
 		return nil
@@ -116,7 +116,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	if !e.IsClose() && !e.IsCloseWrite() {
 		return nil
 	}
-	p, ok := w.parentPath(e.Name)
+	p, ok := w.findPath(e.Name)
 	if !ok {
 		return nil
 	}
@@ -150,7 +150,7 @@ func (w *Worker) AddWatch(path Path) error {
 		if !info.IsDir() {
 			return nil
 		}
-		p, ok := w.parentPath(path)
+		p, ok := w.findPath(path)
 		if !ok {
 			return fmt.Errorf("%s is not configured", path)
 		}

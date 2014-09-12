@@ -69,12 +69,12 @@ func TestPathMatch(t *testing.T) {
 	}
 }
 
-func TestParentPath(t *testing.T) {
+func TestFindPath(t *testing.T) {
 	paths := []Path{
 		Path{Name: "/foo/bar"},
 	}
 	w := Worker{Paths: paths}
-	parent, ok := w.parentPath("/foo/bar/baz/bax")
+	parent, ok := w.findPath("/foo/bar/baz/bax")
 	if !ok {
 		t.Fatal("Expected true")
 	}
@@ -82,7 +82,7 @@ func TestParentPath(t *testing.T) {
 		t.Fatalf("Expected %s, got %s", paths[0].Name, parent.Name)
 	}
 
-	parent, ok = w.parentPath("/eggs/spam")
+	parent, ok = w.findPath("/eggs/spam")
 	if ok {
 		t.Fatal("Expected false")
 	}
