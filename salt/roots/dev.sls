@@ -1,18 +1,11 @@
-git:
-  pkg:
-    - installed
-
-make:
-  pkg:
-    - installed
-
-mercurial:
-  pkg:
-    - installed
-
-unrar:
-  pkg:
-    - installed    
+packages:
+  pkg.installed:
+    - pkgs:
+        - dtrx
+        - git
+        - make
+        - mercurial
+        - unrar
 
 /home/vagrant/.hushlogin:
   file.managed:
