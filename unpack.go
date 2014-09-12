@@ -15,10 +15,10 @@ import (
 )
 
 type Unpack struct {
-	SFV     *sfv.SFV
-	Event   *Event
-	Path    *Path
-	RARFile string
+	SFV         *sfv.SFV
+	Event       *Event
+	Path        *Path
+	ArchivePath string
 }
 
 type templateValues struct {
@@ -75,33 +75,40 @@ func readSFV(path string) (*sfv.SFV, error) {
 
 func (u *Unpack) values() templateValues {
 	return templateValues{
-		Path: u.RARFile,
+		Path: u.ArchivePath,
 		File: u.Event.Base(),
 		Dir:  u.Event.Dir(),
 	}
 }
 
-func (u *Unpack) findRARFile() (string, error) {
+func (u *Unpack) archiveExt() string {
+	if strings.HasPrefix(u.Path.ArchiveExt, ".") {
+		return u.Path.ArchiveExt
+	}
+	return "." + u.Path.ArchiveExt
+}
+
+func (u *Unpack) findArchive() (string, error) {
 	for _, c := range u.SFV.Checksums {
-		if filepath.Ext(c.Path) == ".rar" {
+		if filepath.Ext(c.Path) == u.archiveExt() {
 			return c.Path, nil
 		}
 	}
-	return "", fmt.Errorf("no rar file found in %s", u.SFV.Path)
+	return "", fmt.Errorf("no archive file found in %s", u.SFV.Path)
 }
 
 func (u *Unpack) Run() error {
-	rar, err := u.findRARFile()
+	archive, err := u.findArchive()
 	if err != nil {
 		return err
 	}
-	u.RARFile = rar
+	u.ArchivePath = archive
 	cmd, err := createCommand(u.values(), u.Path.UnpackCommand)
 	if err != nil {
 		log.Printf("Failed to create command: %s", err)
 		return nil
 	}
-	log.Printf(colorstring.Color("[yellow]Unpacking: %s[reset]"), rar)
+	log.Printf(colorstring.Color("[yellow]Unpacking: %s[reset]"), archive)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -113,7 +120,8 @@ func (u *Unpack) RemoveFiles() error {
 	if !u.Path.Remove {
 		return nil
 	}
-	log.Print(colorstring.Color("[yellow]Removing RAR files and SFV[reset]"))
+	log.Print(colorstring.Color(
+		"[yellow]Removing archive files and SFV[reset]"))
 	for _, c := range u.SFV.Checksums {
 		log.Printf(colorstring.Color("[yellow]Removing: %s[reset]"),
 			c.Path)

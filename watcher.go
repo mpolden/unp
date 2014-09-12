@@ -20,8 +20,8 @@ type Path struct {
 	MaxDepth      int
 	Patterns      []string
 	Remove        bool
+	ArchiveExt    string
 	UnpackCommand string
-	Command       string
 }
 
 func PathDepth(name string) int {
