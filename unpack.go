@@ -37,10 +37,12 @@ func createCommand(v templateValues, tmpl string) (*exec.Cmd, error) {
 	if len(argv) == 0 {
 		return nil, fmt.Errorf("template compiled to empty command")
 	}
-	if len(argv) == 1 {
-		return exec.Command(argv[0]), nil
+	cmd := exec.Command(argv[0])
+	cmd.Dir = v.Dir
+	if len(argv) > 1 {
+		cmd.Args = argv[1:]
 	}
-	return exec.Command(argv[0], argv[1:]...), nil
+	return cmd, nil
 }
 
 func findSFV(path string) (string, error) {
