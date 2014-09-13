@@ -20,7 +20,7 @@ func (w *Worker) handleCreateDir(e *Event) error {
 	}
 	p, ok := w.FindPath(e.Name)
 	if p.SkipHidden && e.IsHidden() {
-		return fmt.Errorf("skipping hidden directory: %s", e.Name)
+		return fmt.Errorf("hidden directory: %s", e.Name)
 	}
 	if ok && e.Depth() <= p.MaxDepth {
 		log.Printf("Watching path: %s", e.Name)
@@ -41,17 +41,17 @@ func (w *Worker) handleCloseFile(e *Event) error {
 		return fmt.Errorf("no configured path found for %s", e.Name)
 	}
 	if p.SkipHidden && e.IsHidden() {
-		return fmt.Errorf("skipping hidden file: %s", e.Name)
+		return fmt.Errorf("hidden file: %s", e.Name)
 	}
 	if !p.ValidDepth(e.Depth()) {
-		return fmt.Errorf("not processing %s (min: %d, max: %d)", e,
+		return fmt.Errorf("invalid depth %s (min: %d, max: %d)", e,
 			p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.Match(e.Base()); !match {
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("skipping non-match: %s", e.Name)
+		return fmt.Errorf("no match found for %s", e.Name)
 	}
 	if w.OnFile != nil {
 		w.OnFile(e, &p)
@@ -94,10 +94,10 @@ func (w *Worker) Serve() {
 		case ev := <-w.Watcher.Event:
 			e := Event(*ev)
 			if err := w.handleCreateDir(&e); err != nil {
-				log.Print(err)
+				log.Printf("Skipping event: %s", err)
 			}
 			if err := w.handleCloseFile(&e); err != nil {
-				log.Print(err)
+				log.Printf("Skipping event: %s", err)
 			}
 		case err := <-w.Watcher.Error:
 			log.Print(err)
