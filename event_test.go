@@ -24,6 +24,58 @@ func TestDepth(t *testing.T) {
 	}
 }
 
+func TestString(t *testing.T) {
+	e := Event{Name: "/foo/bar/baz"}
+	expected := "/foo/bar/baz (depth: 3)"
+	if s := e.String(); s != expected {
+		t.Fatalf("Expected '%s', got '%s'", expected, s)
+	}
+}
+
+func TestIsDir(t *testing.T) {
+	e := Event{Mask: inotify.IN_ISDIR}
+	if !e.IsDir() {
+		t.Fatal("Expected true")
+	}
+	e = Event{Mask: 0}
+	if e.IsDir() {
+		t.Fatal("Expected false")
+	}
+}
+
+func TestIsCreate(t *testing.T) {
+	e := Event{Mask: inotify.IN_CREATE}
+	if !e.IsCreate() {
+		t.Fatal("Expected true")
+	}
+	e = Event{Mask: 0}
+	if e.IsCreate() {
+		t.Fatal("Expected false")
+	}
+}
+
+func TestIsClose(t *testing.T) {
+	e := Event{Mask: inotify.IN_CLOSE}
+	if !e.IsClose() {
+		t.Fatal("Expected true")
+	}
+	e = Event{Mask: 0}
+	if e.IsClose() {
+		t.Fatal("Expected false")
+	}
+}
+
+func TestIsCloseWrite(t *testing.T) {
+	e := Event{Mask: inotify.IN_CLOSE_WRITE}
+	if !e.IsCloseWrite() {
+		t.Fatal("Expected true")
+	}
+	e = Event{Mask: 0}
+	if e.IsCloseWrite() {
+		t.Fatal("Expected false")
+	}
+}
+
 func TestDir(t *testing.T) {
 	e := Event{
 		Mask: inotify.IN_ISDIR,
