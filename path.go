@@ -70,6 +70,10 @@ func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+func (p *Path) ValidDirDepth(depth int) bool {
+	return depth < p.MaxDepth
+}
+
 func (p *Path) ValidDepth(depth int) bool {
 	return depth >= p.MinDepth && depth <= p.MaxDepth
 }

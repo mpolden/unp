@@ -127,3 +127,18 @@ func TestValidDepth(t *testing.T) {
 		t.Fatal("Expected false")
 	}
 }
+
+func TestValidDirDepth(t *testing.T) {
+	p := Path{
+		MaxDepth: 5,
+	}
+	if !p.ValidDirDepth(4) {
+		t.Fatal("Expected true")
+	}
+	if p.ValidDirDepth(5) {
+		t.Fatal("Expected false")
+	}
+	if p.ValidDirDepth(6) {
+		t.Fatal("Expected false")
+	}
+}

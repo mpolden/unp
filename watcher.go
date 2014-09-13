@@ -25,9 +25,9 @@ func (w *Worker) handleCreateDir(e *Event) error {
 	if p.SkipHidden && e.IsHidden() {
 		return fmt.Errorf("hidden directory: %s", e.Name)
 	}
-	if e.Depth() > p.MaxDepth {
-		return fmt.Errorf("invalid directory depth %s (max: %d)", e,
-			p.MaxDepth)
+	if !p.ValidDirDepth(e.Depth()) {
+		return fmt.Errorf("invalid dir depth %s (max: %d)", e,
+			p.MaxDepth-1)
 	}
 	log.Printf("Watching path: %s", e.Name)
 	err := w.Watcher.AddWatch(e.Name, inotify.IN_ALL_EVENTS)
