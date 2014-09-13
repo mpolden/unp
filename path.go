@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 type Path struct {
@@ -14,6 +18,12 @@ type Path struct {
 	Remove        bool
 	ArchiveExt    string
 	UnpackCommand string
+}
+
+type CommandValues struct {
+	Name string
+	Dir  string
+	Base string
 }
 
 func PathDepth(name string) int {
@@ -39,4 +49,22 @@ func (p *Path) ArchiveExtWithDot() string {
 		return p.ArchiveExt
 	}
 	return "." + p.ArchiveExt
+}
+
+func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
+	t := template.Must(template.New("cmd").Parse(p.UnpackCommand))
+	var b bytes.Buffer
+	if err := t.Execute(&b, v); err != nil {
+		return nil, err
+	}
+	argv := strings.Split(b.String(), " ")
+	if len(argv) == 0 {
+		return nil, fmt.Errorf("template compiled to empty command")
+	}
+	cmd := exec.Command(argv[0])
+	cmd.Dir = v.Dir
+	if len(argv) > 1 {
+		cmd.Args = argv[1:]
+	}
+	return cmd, nil
 }

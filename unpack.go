@@ -1,17 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/martinp/gosfv"
 	"github.com/mitchellh/colorstring"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
-	"text/template"
 )
 
 type Unpack struct {
@@ -25,24 +21,6 @@ type templateValues struct {
 	Path string
 	Dir  string
 	File string
-}
-
-func createCommand(v templateValues, tmpl string) (*exec.Cmd, error) {
-	t := template.Must(template.New("command").Parse(tmpl))
-	var b bytes.Buffer
-	if err := t.Execute(&b, v); err != nil {
-		return nil, err
-	}
-	argv := strings.Split(b.String(), " ")
-	if len(argv) == 0 {
-		return nil, fmt.Errorf("template compiled to empty command")
-	}
-	cmd := exec.Command(argv[0])
-	cmd.Dir = v.Dir
-	if len(argv) > 1 {
-		cmd.Args = argv[1:]
-	}
-	return cmd, nil
 }
 
 func findSFV(path string) (string, error) {
@@ -73,10 +51,10 @@ func readSFV(path string) (*sfv.SFV, error) {
 	return sfv, nil
 }
 
-func (u *Unpack) values() templateValues {
-	return templateValues{
-		Path: u.ArchivePath,
-		File: u.Event.Base(),
+func (u *Unpack) values() CommandValues {
+	return CommandValues{
+		Name: u.ArchivePath,
+		Base: u.Event.Base(),
 		Dir:  u.Event.Dir(),
 	}
 }
@@ -96,7 +74,7 @@ func (u *Unpack) Run() error {
 		return err
 	}
 	u.ArchivePath = archive
-	cmd, err := createCommand(u.values(), u.Path.UnpackCommand)
+	cmd, err := u.Path.NewUnpackCommand(u.values())
 	if err != nil {
 		log.Printf("Failed to create command: %s", err)
 		return nil
