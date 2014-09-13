@@ -1,31 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/jessevdk/go-flags"
-	"io/ioutil"
 	"log"
 	"os"
 )
-
-type Config struct {
-	Paths []Path
-}
-
-func readConfig(name string) (*Config, error) {
-	if name == "" {
-		name = "config.json"
-	}
-	data, err := ioutil.ReadFile(name)
-	if err != nil {
-		return nil, err
-	}
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
 
 func main() {
 	var opts struct {

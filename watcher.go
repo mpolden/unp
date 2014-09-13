@@ -6,29 +6,19 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type Worker struct {
+	Config
 	Watcher *inotify.Watcher
-	Paths   []Path
 	OnFile  func(e *Event, path *Path)
-}
-
-func (w *Worker) findPath(name string) (Path, bool) {
-	for _, p := range w.Paths {
-		if strings.HasPrefix(name, p.Name) {
-			return p, true
-		}
-	}
-	return Path{}, false
 }
 
 func (w *Worker) handleCreateDir(e *Event) error {
 	if !e.IsCreate() || !e.IsDir() {
 		return nil
 	}
-	p, ok := w.findPath(e.Name)
+	p, ok := w.FindPath(e.Name)
 	if p.SkipHidden && e.IsHidden() {
 		return fmt.Errorf("skipping hidden directory: %s", e.Name)
 	}
@@ -46,7 +36,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	if !e.IsClose() && !e.IsCloseWrite() {
 		return nil
 	}
-	p, ok := w.findPath(e.Name)
+	p, ok := w.FindPath(e.Name)
 	if !ok {
 		return fmt.Errorf("no configured path found for %s", e.Name)
 	}
@@ -77,7 +67,7 @@ func (w *Worker) AddWatch(path Path) error {
 		if !info.IsDir() {
 			return nil
 		}
-		p, ok := w.findPath(path)
+		p, ok := w.FindPath(path)
 		if !ok {
 			return fmt.Errorf("%s is not configured", path)
 		}
@@ -121,6 +111,5 @@ func New() (*Worker, error) {
 	}
 	return &Worker{
 		Watcher: watcher,
-		Paths:   []Path{},
 	}, nil
 }
