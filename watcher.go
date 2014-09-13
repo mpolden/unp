@@ -77,7 +77,7 @@ func (w *Worker) AddWatch(path Path) error {
 		if !ok {
 			return fmt.Errorf("%s is not configured", path)
 		}
-		if PathDepth(path) > p.MaxDepth {
+		if !p.ValidDirDepth(PathDepth(path)) {
 			return nil
 		}
 		log.Printf("Watching path: %s", path)
