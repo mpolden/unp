@@ -16,6 +16,10 @@ type Unpack struct {
 	Path  *Path
 }
 
+func logColorf(format string, v ...interface{}) {
+	log.Printf(colorstring.Color(format), v...)
+}
+
 func findSFV(path string) (string, error) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -58,6 +62,7 @@ func (u *Unpack) Run() error {
 	if err != nil {
 		return err
 	}
+	logColorf("[yellow]Unpacking: %s[reset]", archive)
 	values := CommandValues{
 		Name: archive,
 		Base: u.Event.Base(),
@@ -65,39 +70,30 @@ func (u *Unpack) Run() error {
 	}
 	cmd, err := u.Path.NewUnpackCommand(values)
 	if err != nil {
-		log.Printf("Failed to create command: %s", err)
-		return nil
+		return err
 	}
-	log.Printf(colorstring.Color("[yellow]Unpacking: %s[reset]"), archive)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	log.Print(colorstring.Color("[green]File unpacked[reset]"))
+	logColorf("[green]File(s) unpacked![reset]")
 	return nil
 }
 
 func (u *Unpack) RemoveFiles() error {
-	if !u.Path.Remove {
-		return nil
-	}
-	log.Print(colorstring.Color(
-		"[yellow]Removing archive files and SFV[reset]"))
+	logColorf("[yellow]Removing archive files and SFV[reset]")
 	for _, c := range u.SFV.Checksums {
-		log.Printf(colorstring.Color("[yellow]Removing: %s[reset]"),
-			c.Path)
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	log.Printf(colorstring.Color("[yellow]Removing: %s[reset]"), u.SFV.Path)
 	if err := os.Remove(u.SFV.Path); err != nil {
 		return err
 	}
-	log.Print(colorstring.Color("[yellow]Files removed[reset]"))
+	logColorf("[green]Files removed![reset]")
 	return nil
 }
 
-func (u *Unpack) AllFilesExist() bool {
+func (u *Unpack) StatFiles() error {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
@@ -105,30 +101,25 @@ func (u *Unpack) AllFilesExist() bool {
 		}
 	}
 	if exists != len(u.SFV.Checksums) {
-		log.Printf("%d/%d files in %s", exists, len(u.SFV.Checksums),
-			u.SFV.Path)
-		return false
+		return fmt.Errorf("%d/%d files in %s", exists,
+			len(u.SFV.Checksums), filepath.Base(u.SFV.Path))
 	}
-	return true
+	return nil
 }
 
-func (u *Unpack) VerifyFiles() bool {
-	log.Printf(colorstring.Color("[yellow]Verifying SFV: %s[reset]"),
-		u.SFV.Path)
+func (u *Unpack) VerifyFiles() error {
+	logColorf("[yellow]Verifying: %s[reset]", u.SFV.Path)
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
-			log.Print(err)
-			return false
+			return err
 		}
 		if !ok {
-			log.Printf(colorstring.Color(
-				"[red]Invalid checksum: %s[reset]"), c.Path)
-			return false
+			return fmt.Errorf("failed checksum: %s", c.Filename)
 		}
 	}
-	log.Print(colorstring.Color("[green]All files OK[reset]"))
-	return true
+	logColorf("[green]All files OK![reset]")
+	return nil
 }
 
 func onFile(e *Event, p *Path) {
@@ -137,23 +128,26 @@ func onFile(e *Event, p *Path) {
 		log.Print(err)
 		return
 	}
-
 	u := Unpack{
 		Event: e,
 		Path:  p,
 		SFV:   sfv,
 	}
-
-	if !u.AllFilesExist() || !u.VerifyFiles() {
+	if err := u.StatFiles(); err != nil {
+		log.Print(err)
 		return
 	}
-
+	if err := u.VerifyFiles(); err != nil {
+		logColorf("[red]Verification failed: %s[reset]", err)
+		return
+	}
 	if err := u.Run(); err != nil {
-		log.Printf("Failed to unpack: %s", err)
+		logColorf("[red]Failed to unpack: %s[reset]", err)
 		return
 	}
-
-	if err := u.RemoveFiles(); err != nil {
-		log.Printf("Failed to delete files: %s", err)
+	if u.Path.Remove {
+		if err := u.RemoveFiles(); err != nil {
+			logColorf("[red]Failed to delete files: %s[reset]", err)
+		}
 	}
 }
