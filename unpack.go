@@ -81,16 +81,9 @@ func (u *Unpack) values() templateValues {
 	}
 }
 
-func (u *Unpack) archiveExt() string {
-	if strings.HasPrefix(u.Path.ArchiveExt, ".") {
-		return u.Path.ArchiveExt
-	}
-	return "." + u.Path.ArchiveExt
-}
-
 func (u *Unpack) findArchive() (string, error) {
 	for _, c := range u.SFV.Checksums {
-		if filepath.Ext(c.Path) == u.archiveExt() {
+		if filepath.Ext(c.Path) == u.Path.ArchiveExtWithDot() {
 			return c.Path, nil
 		}
 	}

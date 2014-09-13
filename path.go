@@ -33,3 +33,10 @@ func (p *Path) Match(name string) (bool, error) {
 	}
 	return false, nil
 }
+
+func (p *Path) ArchiveExtWithDot() string {
+	if strings.HasPrefix(p.ArchiveExt, ".") {
+		return p.ArchiveExt
+	}
+	return "." + p.ArchiveExt
+}

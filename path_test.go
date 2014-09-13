@@ -45,3 +45,18 @@ func TestPathMatch(t *testing.T) {
 		t.Fatal("Expected error")
 	}
 }
+
+func TestArchiveExtWithDot(t *testing.T) {
+	p := Path{
+		ArchiveExt: "rar",
+	}
+	if ext := p.ArchiveExtWithDot(); ext != ".rar" {
+		t.Fatalf("Expected '.rar', got '%s'", ext)
+	}
+	p = Path{
+		ArchiveExt: ".rar",
+	}
+	if ext := p.ArchiveExtWithDot(); ext != ".rar" {
+		t.Fatalf("Expected '.rar', got '%s'", ext)
+	}
+}
