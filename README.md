@@ -1,5 +1,7 @@
 # gounpack
 
+[![Build Status](https://travis-ci.org/martinp/gounpack.png)](https://travis-ci.org/martinp/gounpack)
+
 gounpack is a small server that monitors directories, verifies SFV files and
 unpacks archives automatically.
 
