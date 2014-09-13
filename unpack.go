@@ -11,16 +11,9 @@ import (
 )
 
 type Unpack struct {
-	SFV         *sfv.SFV
-	Event       *Event
-	Path        *Path
-	ArchivePath string
-}
-
-type templateValues struct {
-	Path string
-	Dir  string
-	File string
+	SFV   *sfv.SFV
+	Event *Event
+	Path  *Path
 }
 
 func findSFV(path string) (string, error) {
@@ -51,14 +44,6 @@ func readSFV(path string) (*sfv.SFV, error) {
 	return sfv, nil
 }
 
-func (u *Unpack) values() CommandValues {
-	return CommandValues{
-		Name: u.ArchivePath,
-		Base: u.Event.Base(),
-		Dir:  u.Event.Dir(),
-	}
-}
-
 func (u *Unpack) findArchive() (string, error) {
 	for _, c := range u.SFV.Checksums {
 		if filepath.Ext(c.Path) == u.Path.ArchiveExtWithDot() {
@@ -73,8 +58,12 @@ func (u *Unpack) Run() error {
 	if err != nil {
 		return err
 	}
-	u.ArchivePath = archive
-	cmd, err := u.Path.NewUnpackCommand(u.values())
+	values := CommandValues{
+		Name: archive,
+		Base: u.Event.Base(),
+		Dir:  u.Event.Dir(),
+	}
+	cmd, err := u.Path.NewUnpackCommand(values)
 	if err != nil {
 		log.Printf("Failed to create command: %s", err)
 		return nil
