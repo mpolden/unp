@@ -19,15 +19,20 @@ func (w *Worker) handleCreateDir(e *Event) error {
 		return nil
 	}
 	p, ok := w.FindPath(e.Name)
+	if !ok {
+		return fmt.Errorf("no configured path found for %s", e.Name)
+	}
 	if p.SkipHidden && e.IsHidden() {
 		return fmt.Errorf("hidden directory: %s", e.Name)
 	}
-	if ok && e.Depth() <= p.MaxDepth {
-		log.Printf("Watching path: %s", e.Name)
-		err := w.Watcher.AddWatch(e.Name, inotify.IN_ALL_EVENTS)
-		if err != nil {
-			return err
-		}
+	if e.Depth() > p.MaxDepth {
+		return fmt.Errorf("invalid directory depth %s (max: %d)", e,
+			p.MaxDepth)
+	}
+	log.Printf("Watching path: %s", e.Name)
+	err := w.Watcher.AddWatch(e.Name, inotify.IN_ALL_EVENTS)
+	if err != nil {
+		return err
 	}
 	return nil
 }
