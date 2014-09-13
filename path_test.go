@@ -23,7 +23,6 @@ func TestPathMatch(t *testing.T) {
 	p := Path{
 		Patterns: []string{"*.txt"},
 	}
-
 	match, err := p.Match("foo.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -31,12 +30,18 @@ func TestPathMatch(t *testing.T) {
 	if !match {
 		t.Fatal("Expected true")
 	}
-
 	match, err = p.Match("foo")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if match {
 		t.Fatal("Expected false")
+	}
+	p = Path{
+		Patterns: []string{"[bad pattern"},
+	}
+	_, err = p.Match("foo")
+	if err == nil {
+		t.Fatal("Expected error")
 	}
 }
