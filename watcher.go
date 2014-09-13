@@ -43,8 +43,9 @@ func (w *Worker) handleCloseFile(e *Event) error {
 	if p.SkipHidden && e.IsHidden() {
 		return fmt.Errorf("skipping hidden file: %s", e.Name)
 	}
-	if e.Depth() < p.MaxDepth {
-		return fmt.Errorf("%s is less than max depth: %d", e, p.MaxDepth)
+	if !p.ValidDepth(e.Depth()) {
+		return fmt.Errorf("not processing %s (min: %d, max: %d)", e,
+			p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.Match(e.Base()); !match {
 		if err != nil {

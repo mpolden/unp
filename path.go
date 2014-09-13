@@ -13,6 +13,7 @@ import (
 type Path struct {
 	Name          string
 	MaxDepth      int
+	MinDepth      int
 	SkipHidden    bool
 	Patterns      []string
 	Remove        bool
@@ -67,4 +68,8 @@ func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
 		cmd.Args = argv[1:]
 	}
 	return cmd, nil
+}
+
+func (p *Path) ValidDepth(depth int) bool {
+	return depth >= p.MinDepth && depth <= p.MaxDepth
 }

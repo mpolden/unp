@@ -108,3 +108,22 @@ func TestParseUnpackCommand(t *testing.T) {
 		t.Fatal("Expected error")
 	}
 }
+
+func TestValidDepth(t *testing.T) {
+	p := Path{
+		MinDepth: 4,
+		MaxDepth: 5,
+	}
+	if p.ValidDepth(3) {
+		t.Fatal("Expected false")
+	}
+	if !p.ValidDepth(4) {
+		t.Fatal("Expected true")
+	}
+	if !p.ValidDepth(5) {
+		t.Fatal("Expected true")
+	}
+	if p.ValidDepth(6) {
+		t.Fatal("Expected false")
+	}
+}
