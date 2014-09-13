@@ -8,7 +8,7 @@ import (
 
 func main() {
 	var opts struct {
-		Config string `short:"c" long:"config" description:"Config file"`
+		Config string `short:"c" long:"config" description:"Config file" value-name:"FILE" default:"config.json"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)

@@ -11,9 +11,6 @@ type Config struct {
 }
 
 func readConfig(name string) (*Config, error) {
-	if name == "" {
-		name = "config.json"
-	}
 	data, err := ioutil.ReadFile(name)
 	if err != nil {
 		return nil, err
