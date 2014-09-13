@@ -10,6 +10,15 @@ import (
 	"path/filepath"
 )
 
+var colorize colorstring.Colorize
+
+func init() {
+	colorize = colorstring.Colorize{
+		Colors: colorstring.DefaultColors,
+		Reset:  true,
+	}
+}
+
 type Unpack struct {
 	SFV   *sfv.SFV
 	Event *Event
@@ -17,7 +26,7 @@ type Unpack struct {
 }
 
 func logColorf(format string, v ...interface{}) {
-	log.Printf(colorstring.Color(format), v...)
+	log.Printf(colorize.Color(format), v...)
 }
 
 func findSFV(path string) (string, error) {

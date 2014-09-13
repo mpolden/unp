@@ -14,6 +14,7 @@ Usage:
 
 Application Options:
   -c, --config=FILE    Config file (config.json)
+  -p, --colors         Use colors in output
 
 Help Options:
   -h, --help           Show this help message
