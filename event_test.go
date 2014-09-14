@@ -76,6 +76,17 @@ func TestIsCloseWrite(t *testing.T) {
 	}
 }
 
+func TestIsCloseNoWrite(t *testing.T) {
+	e := Event{Mask: inotify.IN_CLOSE_NOWRITE}
+	if !e.IsCloseNoWrite() {
+		t.Fatal("Expected true")
+	}
+	e = Event{Mask: 0}
+	if e.IsCloseNoWrite() {
+		t.Fatal("Expected false")
+	}
+}
+
 func TestDir(t *testing.T) {
 	e := Event{
 		Mask: inotify.IN_ISDIR,
