@@ -39,18 +39,15 @@ func findSFV(path string) (string, error) {
 			return filepath.Join(path, f.Name()), nil
 		}
 	}
-	return "", nil
+	return "", fmt.Errorf("no sfv found in %s", path)
 }
 
 func readSFV(path string) (*sfv.SFV, error) {
-	sfvPath, err := findSFV(path)
+	sfvFile, err := findSFV(path)
 	if err != nil {
 		return nil, err
 	}
-	if sfvPath == "" {
-		return nil, fmt.Errorf("no sfv found in %s", path)
-	}
-	sfv, err := sfv.Read(sfvPath)
+	sfv, err := sfv.Read(sfvFile)
 	if err != nil {
 		return nil, err
 	}
