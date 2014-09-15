@@ -62,7 +62,10 @@ func (p *Path) ArchiveExtWithDot() string {
 }
 
 func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
-	t := template.Must(template.New("cmd").Parse(p.UnpackCommand))
+	t, err := template.New("cmd").Parse(p.UnpackCommand)
+	if err != nil {
+		return nil, err
+	}
 	var b bytes.Buffer
 	if err := t.Execute(&b, v); err != nil {
 		return nil, err
