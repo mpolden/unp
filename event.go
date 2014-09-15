@@ -2,7 +2,6 @@ package main
 
 import (
 	"code.google.com/p/go.exp/inotify"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +12,6 @@ type Event inotify.Event
 func (e *Event) Depth() int {
 	name := filepath.Clean(e.Name)
 	return strings.Count(name, string(os.PathSeparator))
-}
-
-func (e *Event) String() string {
-	return fmt.Sprintf("%s (depth: %d)", e.Name, e.Depth())
 }
 
 func (e *Event) IsDir() bool {

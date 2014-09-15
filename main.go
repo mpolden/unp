@@ -23,17 +23,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	w, err := New()
+	dispatcher, err := New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, path := range cfg.Paths {
-		if err := w.AddWatch(path); err != nil {
-			log.Fatal(err)
-		}
+	if err := dispatcher.Watch(); err != nil {
+		log.Print(err)
 	}
 
-	w.OnFile = onFile
-	w.Serve()
+	dispatcher.OnFile = onFile
+	dispatcher.Serve()
 }

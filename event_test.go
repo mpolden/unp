@@ -24,14 +24,6 @@ func TestDepth(t *testing.T) {
 	}
 }
 
-func TestString(t *testing.T) {
-	e := Event{Name: "/foo/bar/baz"}
-	expected := "/foo/bar/baz (depth: 3)"
-	if s := e.String(); s != expected {
-		t.Fatalf("Expected '%s', got '%s'", expected, s)
-	}
-}
-
 func TestIsDir(t *testing.T) {
 	e := Event{Mask: inotify.IN_ISDIR}
 	if !e.IsDir() {

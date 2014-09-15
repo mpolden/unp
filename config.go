@@ -10,16 +10,16 @@ type Config struct {
 	Paths []Path
 }
 
-func readConfig(name string) (*Config, error) {
+func readConfig(name string) (Config, error) {
 	data, err := ioutil.ReadFile(name)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+		return Config{}, err
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 func (c *Config) FindPath(name string) (Path, bool) {
