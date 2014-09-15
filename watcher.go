@@ -14,24 +14,36 @@ type Worker struct {
 	OnFile  func(e *Event, path *Path)
 }
 
+func (w *Worker) watchDir(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return nil
+	}
+	p, ok := w.FindPath(path)
+	if !ok {
+		return fmt.Errorf("%s is not configured", path)
+	}
+	if p.SkipHidden && IsHidden(path) {
+		return fmt.Errorf("hidden directory: %s", path)
+	}
+	if !p.ValidDirDepth(PathDepth(path)) {
+		return nil
+	}
+	log.Printf("Watching path: %s", path)
+	err = w.Watcher.AddWatch(path, inotify.IN_ALL_EVENTS)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (w *Worker) handleCreateDir(e *Event) error {
 	if !e.IsCreate() || !e.IsDir() {
 		return nil
 	}
-	p, ok := w.FindPath(e.Name)
-	if !ok {
-		return fmt.Errorf("no configured path found for %s", e.Name)
-	}
-	if p.SkipHidden && e.IsHidden() {
-		return fmt.Errorf("hidden directory: %s", e.Name)
-	}
-	if !p.ValidDirDepth(e.Depth()) {
-		return fmt.Errorf("invalid dir depth %s (max: %d)", e,
-			p.MaxDepth-1)
-	}
-	log.Printf("Watching path: %s", e.Name)
-	err := w.Watcher.AddWatch(e.Name, inotify.IN_ALL_EVENTS)
-	if err != nil {
+	if err := filepath.Walk(e.Name, w.watchDir); err != nil {
 		return err
 	}
 	return nil
@@ -66,28 +78,7 @@ func (w *Worker) handleCloseFile(e *Event) error {
 
 func (w *Worker) AddWatch(path Path) error {
 	w.Paths = append(w.Paths, path)
-	walkFn := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		p, ok := w.FindPath(path)
-		if !ok {
-			return fmt.Errorf("%s is not configured", path)
-		}
-		if !p.ValidDirDepth(PathDepth(path)) {
-			return nil
-		}
-		log.Printf("Watching path: %s", path)
-		err = w.Watcher.AddWatch(path, inotify.IN_ALL_EVENTS)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	if err := filepath.Walk(path.Name, walkFn); err != nil {
+	if err := filepath.Walk(path.Name, w.watchDir); err != nil {
 		return err
 	}
 	return nil

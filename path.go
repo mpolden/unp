@@ -32,6 +32,10 @@ func PathDepth(name string) int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
+func IsHidden(name string) bool {
+	return strings.HasPrefix(filepath.Base(name), ".")
+}
+
 func (p *Path) Match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
