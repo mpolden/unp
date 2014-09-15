@@ -36,6 +36,11 @@ func IsHidden(name string) bool {
 	return strings.HasPrefix(filepath.Base(name), ".")
 }
 
+func DirBase(name string) string {
+	return filepath.Join(filepath.Base(filepath.Dir(name)),
+		filepath.Base(name))
+}
+
 func (p *Path) Match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)

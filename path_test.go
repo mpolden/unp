@@ -151,3 +151,10 @@ func TestPathIsHidden(t *testing.T) {
 		t.Fatal("Expected false")
 	}
 }
+
+func TestDirBase(t *testing.T) {
+	p := "/foo/bar/baz"
+	if b := DirBase(p); b != "bar/baz" {
+		t.Fatalf("Expected bar/baz, got %s", b)
+	}
+}

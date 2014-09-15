@@ -68,7 +68,7 @@ func (u *Unpack) Run() error {
 	if err != nil {
 		return err
 	}
-	logColorf("[yellow]Unpacking: %s[reset]", archive)
+	logColorf("[yellow]Unpacking: %s[reset]", DirBase(archive))
 	values := CommandValues{
 		Name: archive,
 		Base: u.Event.Base(),
@@ -107,14 +107,14 @@ func (u *Unpack) StatFiles() error {
 		}
 	}
 	if exists != len(u.SFV.Checksums) {
-		return fmt.Errorf("%d/%d files in %s", exists,
-			len(u.SFV.Checksums), filepath.Base(u.SFV.Path))
+		return fmt.Errorf("%s: %d/%d files", DirBase(u.SFV.Path),
+			exists, len(u.SFV.Checksums))
 	}
 	return nil
 }
 
 func (u *Unpack) VerifyFiles() error {
-	logColorf("[yellow]Verifying: %s[reset]", u.SFV.Path)
+	logColorf("[yellow]Verifying: %s[reset]", DirBase(u.SFV.Path))
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
