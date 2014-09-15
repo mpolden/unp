@@ -31,10 +31,6 @@ func (e *Event) IsClose() bool {
 	return e.Mask&inotify.IN_CLOSE == inotify.IN_CLOSE
 }
 
-func (e *Event) IsCloseNoWrite() bool {
-	return e.Mask&inotify.IN_CLOSE_NOWRITE == inotify.IN_CLOSE_NOWRITE
-}
-
 func (e *Event) IsCloseWrite() bool {
 	return e.Mask&inotify.IN_CLOSE_WRITE == inotify.IN_CLOSE_WRITE
 }
