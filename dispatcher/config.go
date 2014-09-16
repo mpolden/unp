@@ -1,4 +1,4 @@
-package main
+package dispatcher
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ type Config struct {
 	Paths []Path
 }
 
-func readConfig(name string) (Config, error) {
+func ReadConfig(name string) (Config, error) {
 	data, err := ioutil.ReadFile(name)
 	if err != nil {
 		return Config{}, err

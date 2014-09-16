@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/martinp/gosfv"
+	"github.com/martinp/gounpack/dispatcher"
 	"github.com/mitchellh/colorstring"
 	"io/ioutil"
 	"log"
@@ -21,8 +22,8 @@ func init() {
 
 type Unpack struct {
 	SFV   *sfv.SFV
-	Event *Event
-	Path  *Path
+	Event *dispatcher.Event
+	Path  *dispatcher.Path
 }
 
 func logColorf(format string, v ...interface{}) {
@@ -68,8 +69,8 @@ func (u *Unpack) Run() error {
 	if err != nil {
 		return err
 	}
-	logColorf("[yellow]Unpacking: %s[reset]", DirBase(archive))
-	values := CommandValues{
+	logColorf("[yellow]Unpacking: %s[reset]", dispatcher.DirBase(archive))
+	values := dispatcher.CommandValues{
 		Name: archive,
 		Base: u.Event.Base(),
 		Dir:  u.Event.Dir(),
@@ -107,14 +108,16 @@ func (u *Unpack) StatFiles() error {
 		}
 	}
 	if exists != len(u.SFV.Checksums) {
-		return fmt.Errorf("%s: %d/%d files", DirBase(u.SFV.Path),
+		return fmt.Errorf("%s: %d/%d files",
+			dispatcher.DirBase(u.SFV.Path),
 			exists, len(u.SFV.Checksums))
 	}
 	return nil
 }
 
 func (u *Unpack) VerifyFiles() error {
-	logColorf("[yellow]Verifying: %s[reset]", DirBase(u.SFV.Path))
+	logColorf("[yellow]Verifying: %s[reset]",
+		dispatcher.DirBase(u.SFV.Path))
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
@@ -128,7 +131,7 @@ func (u *Unpack) VerifyFiles() error {
 	return nil
 }
 
-func onFile(e *Event, p *Path) {
+func onFile(e *dispatcher.Event, p *dispatcher.Path) {
 	sfv, err := readSFV(e.Dir())
 	if err != nil {
 		log.Print(err)

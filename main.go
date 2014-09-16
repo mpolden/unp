@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jessevdk/go-flags"
+	"github.com/martinp/gounpack/dispatcher"
 	"log"
 	"os"
 )
@@ -18,20 +19,20 @@ func main() {
 	}
 
 	colorize.Disable = !opts.Colors
-	cfg, err := readConfig(opts.Config)
+	cfg, err := dispatcher.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dispatcher, err := New(cfg)
+	d, err := dispatcher.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := dispatcher.Watch(); err != nil {
+	if err := d.Watch(); err != nil {
 		log.Print(err)
 	}
 
-	dispatcher.OnFile = onFile
-	dispatcher.Serve()
+	d.OnFile = onFile
+	d.Serve()
 }

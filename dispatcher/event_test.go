@@ -1,4 +1,4 @@
-package main
+package dispatcher
 
 import (
 	"code.google.com/p/go.exp/inotify"
