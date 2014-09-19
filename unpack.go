@@ -69,7 +69,8 @@ func (u *Unpack) Run() error {
 	if err != nil {
 		return err
 	}
-	logColorf("[yellow]Unpacking: %s[reset]", dispatcher.DirBase(archive))
+	archiveDirBase := dispatcher.DirBase(archive)
+	logColorf("[yellow]Unpacking: %s[reset]", archiveDirBase)
 	values := dispatcher.CommandValues{
 		Name: archive,
 		Base: u.Event.Base(),
@@ -82,12 +83,13 @@ func (u *Unpack) Run() error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	logColorf("[green]File(s) unpacked![reset]")
+	logColorf("[green]Unpacked: %s[reset]", archiveDirBase)
 	return nil
 }
 
 func (u *Unpack) RemoveFiles() error {
-	logColorf("[yellow]Removing archive files and SFV[reset]")
+	dir := filepath.Dir(u.SFV.Path)
+	logColorf("[yellow]Cleaning up archives and SFV: %s[reset]", dir)
 	for _, c := range u.SFV.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
@@ -96,7 +98,7 @@ func (u *Unpack) RemoveFiles() error {
 	if err := os.Remove(u.SFV.Path); err != nil {
 		return err
 	}
-	logColorf("[green]Files removed![reset]")
+	logColorf("[green]Cleanup done: %s[reset]", dir)
 	return nil
 }
 
@@ -116,18 +118,19 @@ func (u *Unpack) StatFiles() error {
 }
 
 func (u *Unpack) VerifyFiles() error {
-	logColorf("[yellow]Verifying: %s[reset]",
-		dispatcher.DirBase(u.SFV.Path))
+	sfvFile := dispatcher.DirBase(u.SFV.Path)
+	logColorf("[yellow]Verifying: %s[reset]", sfvFile)
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("failed checksum: %s", c.Filename)
+			return fmt.Errorf("%s: failed checksum: %s", sfvFile,
+				c.Filename)
 		}
 	}
-	logColorf("[green]All files OK![reset]")
+	logColorf("[green]OK: %s[reset]", sfvFile)
 	return nil
 }
 
