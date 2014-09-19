@@ -71,7 +71,7 @@ func (d *Dispatcher) handleCloseFile(e *Event) error {
 		return fmt.Errorf("no match found: %s", e.Name)
 	}
 	if d.OnFile != nil {
-		d.OnFile(e, &p)
+		go d.OnFile(e, &p)
 	}
 	return nil
 }
