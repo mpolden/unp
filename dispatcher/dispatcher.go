@@ -10,7 +10,7 @@ import (
 
 type Dispatcher struct {
 	Config
-	OnFile  func(e *Event, path *Path)
+	OnFile  func(e Event, path Path)
 	watcher *inotify.Watcher
 }
 
@@ -71,7 +71,7 @@ func (d *Dispatcher) handleCloseFile(e *Event) error {
 		return fmt.Errorf("no match found: %s", e.Name)
 	}
 	if d.OnFile != nil {
-		go d.OnFile(e, &p)
+		go d.OnFile(*e, p)
 	}
 	return nil
 }

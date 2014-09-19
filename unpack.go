@@ -22,8 +22,8 @@ func init() {
 
 type Unpack struct {
 	SFV   *sfv.SFV
-	Event *dispatcher.Event
-	Path  *dispatcher.Path
+	Event dispatcher.Event
+	Path  dispatcher.Path
 }
 
 func logColorf(format string, v ...interface{}) {
@@ -134,7 +134,7 @@ func (u *Unpack) VerifyFiles() error {
 	return nil
 }
 
-func onFile(e *dispatcher.Event, p *dispatcher.Path) {
+func onFile(e dispatcher.Event, p dispatcher.Path) {
 	sfv, err := readSFV(e.Dir())
 	if err != nil {
 		log.Print(err)
