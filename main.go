@@ -6,12 +6,13 @@ import (
 	"github.com/martinp/gounpack/unpack"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func main() {
 	var opts struct {
-		Config string `short:"c" long:"config" description:"Config file" value-name:"FILE" default:"config.json"`
-		Colors bool   `short:"p" long:"colors" description:"Use colors in log output"`
+		Config string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
+		Colors bool   `short:"c" long:"colors" description:"Use colors in log output"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -20,6 +21,10 @@ func main() {
 	}
 
 	unpack.Colorize.Disable = !opts.Colors
+	if opts.Config == "~/.gounpackrc" {
+		home := os.Getenv("HOME")
+		opts.Config = filepath.Join(home, ".gounpackrc")
+	}
 	cfg, err := dispatcher.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
