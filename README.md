@@ -13,8 +13,8 @@ Usage:
   gounpack [OPTIONS]
 
 Application Options:
-  -c, --config=FILE    Config file (config.json)
-  -p, --colors         Use colors in output
+  -f, --config=FILE    Config file (~/.gounpackrc)
+  -c, --colors         Use colors in log output
 
 Help Options:
   -h, --help           Show this help message
