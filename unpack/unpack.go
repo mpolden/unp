@@ -1,4 +1,4 @@
-package main
+package unpack
 
 import (
 	"fmt"
@@ -11,23 +11,23 @@ import (
 	"path/filepath"
 )
 
-var colorize colorstring.Colorize
+var Colorize colorstring.Colorize
 
 func init() {
-	colorize = colorstring.Colorize{
+	Colorize = colorstring.Colorize{
 		Colors: colorstring.DefaultColors,
 		Reset:  true,
 	}
 }
 
-type Unpack struct {
+type unpack struct {
 	SFV   *sfv.SFV
 	Event dispatcher.Event
 	Path  dispatcher.Path
 }
 
 func logColorf(format string, v ...interface{}) {
-	log.Printf(colorize.Color(format), v...)
+	log.Printf(Colorize.Color(format), v...)
 }
 
 func findSFV(path string) (string, error) {
@@ -55,7 +55,7 @@ func readSFV(path string) (*sfv.SFV, error) {
 	return sfv, nil
 }
 
-func (u *Unpack) findArchive() (string, error) {
+func (u *unpack) findArchive() (string, error) {
 	for _, c := range u.SFV.Checksums {
 		if filepath.Ext(c.Path) == u.Path.ArchiveExtWithDot() {
 			return c.Path, nil
@@ -64,7 +64,7 @@ func (u *Unpack) findArchive() (string, error) {
 	return "", fmt.Errorf("no archive file found in %s", u.SFV.Path)
 }
 
-func (u *Unpack) Run() error {
+func (u *unpack) Run() error {
 	archive, err := u.findArchive()
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (u *Unpack) Run() error {
 	return nil
 }
 
-func (u *Unpack) RemoveFiles() error {
+func (u *unpack) RemoveFiles() error {
 	dir := filepath.Dir(u.SFV.Path)
 	logColorf("[yellow]Cleaning up archives and SFV: %s[reset]", dir)
 	for _, c := range u.SFV.Checksums {
@@ -102,7 +102,7 @@ func (u *Unpack) RemoveFiles() error {
 	return nil
 }
 
-func (u *Unpack) StatFiles() error {
+func (u *unpack) StatFiles() error {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
@@ -117,7 +117,7 @@ func (u *Unpack) StatFiles() error {
 	return nil
 }
 
-func (u *Unpack) VerifyFiles() error {
+func (u *unpack) VerifyFiles() error {
 	sfvFile := dispatcher.DirBase(u.SFV.Path)
 	logColorf("[yellow]Verifying: %s[reset]", sfvFile)
 	for _, c := range u.SFV.Checksums {
@@ -134,13 +134,13 @@ func (u *Unpack) VerifyFiles() error {
 	return nil
 }
 
-func onFile(e dispatcher.Event, p dispatcher.Path) {
+func OnFile(e dispatcher.Event, p dispatcher.Path) {
 	sfv, err := readSFV(e.Dir())
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	u := Unpack{
+	u := unpack{
 		Event: e,
 		Path:  p,
 		SFV:   sfv,

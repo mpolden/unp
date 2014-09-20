@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jessevdk/go-flags"
 	"github.com/martinp/gounpack/dispatcher"
+	"github.com/martinp/gounpack/unpack"
 	"log"
 	"os"
 )
@@ -18,7 +19,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	colorize.Disable = !opts.Colors
+	unpack.Colorize.Disable = !opts.Colors
 	cfg, err := dispatcher.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
@@ -33,6 +34,6 @@ func main() {
 		log.Print(err)
 	}
 
-	d.OnFile = onFile
+	d.OnFile = unpack.OnFile
 	d.Serve()
 }
