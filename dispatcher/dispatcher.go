@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+const flags = inotify.IN_CREATE | inotify.IN_CLOSE | inotify.IN_CLOSE_WRITE
+
 type Dispatcher struct {
 	Config
 	OnFile  func(e Event, path Path)
@@ -33,7 +35,7 @@ func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
 			path, depth, p.MaxDepth-1)
 	}
 	log.Printf("Watching path: %s", path)
-	if err := d.watcher.Watch(path); err != nil {
+	if err := d.watcher.AddWatch(path, flags); err != nil {
 		return err
 	}
 	return nil
