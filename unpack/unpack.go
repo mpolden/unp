@@ -64,11 +64,7 @@ func (u *unpack) findArchive() (string, error) {
 	return "", fmt.Errorf("no archive file found in %s", u.SFV.Path)
 }
 
-func (u *unpack) Run() error {
-	archive, err := u.findArchive()
-	if err != nil {
-		return err
-	}
+func (u *unpack) Run(archive string) error {
 	archiveDirBase := dispatcher.DirBase(archive)
 	logColorf("[yellow]Unpacking: %s[reset]", archiveDirBase)
 	values := dispatcher.CommandValues{
@@ -84,6 +80,26 @@ func (u *unpack) Run() error {
 		return err
 	}
 	logColorf("[green]Unpacked: %s[reset]", archiveDirBase)
+	return nil
+}
+
+func (u *unpack) PostRun(archive string) error {
+	if u.Path.PostCommand == "" {
+		return nil
+	}
+	values := dispatcher.CommandValues{
+		Name: archive,
+		Base: u.Event.Base(),
+		Dir:  u.Event.Dir(),
+	}
+	cmd, err := u.Path.NewPostCommand(values)
+	if err != nil {
+		return err
+	}
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	logColorf("[green]Executed post command: %s[reset]", u.Path.PostCommand)
 	return nil
 }
 
@@ -153,8 +169,17 @@ func OnFile(e dispatcher.Event, p dispatcher.Path) {
 		logColorf("[red]Verification failed: %s[reset]", err)
 		return
 	}
-	if err := u.Run(); err != nil {
+	archive, err := u.findArchive()
+	if err != nil {
+		logColorf("[red]File not found: %s[reset]", err)
+		return
+	}
+	if err := u.Run(archive); err != nil {
 		logColorf("[red]Failed to unpack: %s[reset]", err)
+		return
+	}
+	if err := u.PostRun(archive); err != nil {
+		logColorf("[red]Failed to run post command: %s[reset]", err)
 		return
 	}
 	if u.Path.Remove {

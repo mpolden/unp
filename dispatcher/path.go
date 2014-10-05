@@ -19,6 +19,7 @@ type Path struct {
 	Remove        bool
 	ArchiveExt    string
 	UnpackCommand string
+	PostCommand   string
 }
 
 type CommandValues struct {
@@ -61,8 +62,8 @@ func (p *Path) ArchiveExtWithDot() string {
 	return "." + p.ArchiveExt
 }
 
-func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
-	t, err := template.New("cmd").Parse(p.UnpackCommand)
+func (p *Path) newCmd(tmpl string, v CommandValues) (*exec.Cmd, error) {
+	t, err := template.New("cmd").Parse(tmpl)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +81,14 @@ func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
 		cmd.Args = argv[1:]
 	}
 	return cmd, nil
+}
+
+func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
+	return p.newCmd(p.UnpackCommand, v)
+}
+
+func (p *Path) NewPostCommand(v CommandValues) (*exec.Cmd, error) {
+	return p.newCmd(p.PostCommand, v)
 }
 
 func (p *Path) ValidDirDepth(depth int) bool {
