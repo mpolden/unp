@@ -1,8 +1,8 @@
 package dispatcher
 
 import (
-	"code.google.com/p/go.exp/inotify"
 	"fmt"
+	"golang.org/x/exp/inotify"
 	"log"
 	"os"
 	"path/filepath"
