@@ -41,3 +41,20 @@ Help Options:
   ]
 }
 ```
+
+# UnpackCommand template
+
+The following template variables are available for use in `UnpackCommand` option:
+
+Variable | Description                                    | Example
+-------- | ---------------------------------------------- | -------
+`Base`   | Basename of the archive file                   | `baz.rar`
+`Dir`    | Directory holding the archive file             | `/tmp/foo/bar`
+`Name`   | Full path to archive file triggering the event | `/tmp/foo/bar/baz.rar`
+
+The template is compiled using the
+[text/template](http://golang.org/pkg/text/template/) package. Variables can be
+used like this: `{{.Name}}`
+
+The working directory of `UnpackCommand` will be set to the directory where the
+archive is located, equal to `{{.Dir}}`.
