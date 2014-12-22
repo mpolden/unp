@@ -1,7 +1,7 @@
 PREFIX ?= /usr/local
 NAME=gounpack
 
-all: test build
+all: deps test build
 
 fmt:
 	@find . -maxdepth 2 -name '*.go' -exec gofmt -w=true {} \;
@@ -10,7 +10,7 @@ test:
 	@find . -maxdepth 2 -name '*_test.go' -printf "%h\n" | uniq | xargs go test
 
 deps:
-	go get -d
+	go get -d -v
 
 hack:
 	@mkdir -p src/github.com/martinp
