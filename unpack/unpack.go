@@ -6,7 +6,6 @@ import (
 	"github.com/martinp/gounpack/dispatcher"
 	"github.com/mitchellh/colorstring"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -21,13 +20,14 @@ func init() {
 }
 
 type unpack struct {
-	SFV   *sfv.SFV
-	Event dispatcher.Event
-	Path  dispatcher.Path
+	SFV      *sfv.SFV
+	Event    dispatcher.Event
+	Path     dispatcher.Path
+	messages chan<- string
 }
 
-func logColorf(format string, v ...interface{}) {
-	log.Printf(Colorize.Color(format), v...)
+func (u *unpack) log(format string, v ...interface{}) {
+	u.messages <- fmt.Sprintf(Colorize.Color(format), v...)
 }
 
 func findSFV(path string) (string, error) {
@@ -66,7 +66,7 @@ func (u *unpack) findArchive() (string, error) {
 
 func (u *unpack) Run(archive string) error {
 	archiveDirBase := dispatcher.DirBase(archive)
-	logColorf("[yellow]Unpacking: %s[reset]", archiveDirBase)
+	u.log("[yellow]Unpacking: %s[reset]", archiveDirBase)
 	values := dispatcher.CommandValues{
 		Name: archive,
 		Base: u.Event.Base(),
@@ -79,7 +79,7 @@ func (u *unpack) Run(archive string) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	logColorf("[green]Unpacked: %s[reset]", archiveDirBase)
+	u.log("[green]Unpacked: %s[reset]", archiveDirBase)
 	return nil
 }
 
@@ -99,13 +99,14 @@ func (u *unpack) PostRun(archive string) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	logColorf("[green]Executed post command: %s[reset]", u.Path.PostCommand)
+	u.log("[green]Executed post command: %s[reset]",
+		u.Path.PostCommand)
 	return nil
 }
 
 func (u *unpack) RemoveFiles() error {
 	dir := filepath.Dir(u.SFV.Path)
-	logColorf("[yellow]Cleaning up archives and SFV: %s[reset]", dir)
+	u.log("[yellow]Cleaning up archives and SFV: %s[reset]", dir)
 	for _, c := range u.SFV.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
@@ -114,7 +115,7 @@ func (u *unpack) RemoveFiles() error {
 	if err := os.Remove(u.SFV.Path); err != nil {
 		return err
 	}
-	logColorf("[green]Cleanup done: %s[reset]", dir)
+	u.log("[green]Cleanup done: %s[reset]", dir)
 	return nil
 }
 
@@ -135,7 +136,7 @@ func (u *unpack) StatFiles() error {
 
 func (u *unpack) VerifyFiles() error {
 	sfvFile := dispatcher.DirBase(u.SFV.Path)
-	logColorf("[yellow]Verifying: %s[reset]", sfvFile)
+	u.log("[yellow]Verifying: %s[reset]", sfvFile)
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
@@ -146,45 +147,46 @@ func (u *unpack) VerifyFiles() error {
 				c.Filename)
 		}
 	}
-	logColorf("[green]OK: %s[reset]", sfvFile)
+	u.log("[green]OK: %s[reset]", sfvFile)
 	return nil
 }
 
-func OnFile(e dispatcher.Event, p dispatcher.Path) {
+func OnFile(e dispatcher.Event, p dispatcher.Path, m chan<- string) {
 	sfv, err := readSFV(e.Dir())
 	if err != nil {
-		log.Print(err)
+		m <- err.Error()
 		return
 	}
 	u := unpack{
-		Event: e,
-		Path:  p,
-		SFV:   sfv,
+		Event:    e,
+		Path:     p,
+		SFV:      sfv,
+		messages: m,
 	}
 	if err := u.StatFiles(); err != nil {
-		log.Print(err)
+		u.log(err.Error())
 		return
 	}
 	if err := u.VerifyFiles(); err != nil {
-		logColorf("[red]Verification failed: %s[reset]", err)
+		u.log("[red]Verification failed: %s[reset]", err)
 		return
 	}
 	archive, err := u.findArchive()
 	if err != nil {
-		logColorf("[red]File not found: %s[reset]", err)
+		u.log("[red]File not found: %s[reset]", err)
 		return
 	}
 	if err := u.Run(archive); err != nil {
-		logColorf("[red]Failed to unpack: %s[reset]", err)
+		u.log("[red]Failed to unpack: %s[reset]", err)
 		return
 	}
 	if err := u.PostRun(archive); err != nil {
-		logColorf("[red]Failed to run post command: %s[reset]", err)
+		u.log("[red]Failed to run post command: %s[reset]", err)
 		return
 	}
 	if u.Path.Remove {
 		if err := u.RemoveFiles(); err != nil {
-			logColorf("[red]Failed to delete files: %s[reset]", err)
+			u.log("[red]Failed to delete files: %s[reset]", err)
 		}
 	}
 }

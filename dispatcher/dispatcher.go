@@ -12,8 +12,9 @@ const flags = inotify.IN_CREATE | inotify.IN_CLOSE | inotify.IN_CLOSE_WRITE
 
 type Dispatcher struct {
 	Config
-	OnFile  func(e Event, path Path)
-	watcher *inotify.Watcher
+	OnFile   func(e Event, path Path, messages chan<- string)
+	watcher  *inotify.Watcher
+	messages chan string
 }
 
 func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
@@ -73,7 +74,7 @@ func (d *Dispatcher) handleCloseFile(e *Event) error {
 		return fmt.Errorf("no match found: %s", e.Name)
 	}
 	if d.OnFile != nil {
-		go d.OnFile(*e, p)
+		go d.OnFile(*e, p, d.messages)
 	}
 	return nil
 }
@@ -88,15 +89,25 @@ func (d *Dispatcher) Watch() error {
 }
 
 func (d *Dispatcher) Serve() {
+	go func() {
+		for {
+			select {
+			case msg := <-d.messages:
+				log.Print(msg)
+			}
+		}
+	}()
 	for {
 		select {
 		case ev := <-d.watcher.Event:
 			e := Event(*ev)
 			if err := d.handleCreateDir(&e); err != nil {
-				log.Printf("Skipping event: %s", err)
+				d.messages <- fmt.Sprintf("Skipping event: %s",
+					err)
 			}
 			if err := d.handleCloseFile(&e); err != nil {
-				log.Printf("Skipping event: %s", err)
+				d.messages <- fmt.Sprintf("Skipping event: %s",
+					err)
 			}
 		case err := <-d.watcher.Error:
 			log.Print(err)
@@ -109,8 +120,10 @@ func New(cfg Config) (*Dispatcher, error) {
 	if err != nil {
 		return nil, err
 	}
+	messages := make(chan string)
 	return &Dispatcher{
-		Config:  cfg,
-		watcher: watcher,
+		Config:   cfg,
+		watcher:  watcher,
+		messages: messages,
 	}, nil
 }
