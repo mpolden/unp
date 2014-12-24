@@ -22,3 +22,6 @@ install:
 build:
 	@mkdir -p bin
 	go build -o bin/$(NAME)
+
+docker-image:
+	docker build -t martinp/gounpack .
