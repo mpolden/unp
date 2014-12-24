@@ -1,23 +1,18 @@
-PREFIX ?= /usr/local
 NAME=gounpack
 
 all: deps test build
 
 fmt:
-	@find . -maxdepth 2 -name '*.go' -exec gofmt -w=true {} \;
+	go fmt ./...
 
 test:
-	@find . -maxdepth 2 -name '*_test.go' -printf "%h\n" | uniq | xargs go test
+	go test ./...
 
 deps:
-	go get -d -v
-
-hack:
-	@mkdir -p src/github.com/martinp
-	@ln -sfn $(CURDIR) src/github.com/martinp/$(NAME)
+	go get -d -v ./...
 
 install:
-	cp -p bin/$(NAME) $(PREFIX)/bin/$(NAME)
+	go install
 
 build:
 	@mkdir -p bin
