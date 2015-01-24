@@ -24,6 +24,7 @@ Help Options:
 
 ```json
 {
+  "Async": false,
   "Paths": [
     {
       "Name": "/home/foo/videos",
@@ -44,6 +45,10 @@ Help Options:
 ```
 
 ## Configuration options
+
+`Async` determines whether to do unpacking asynchronously. Set to `false` to
+queue unpack events and process them one at a time, this might be faster as
+unpacking is often I/O bound.
 
 `Paths` is an array of paths to watch.
 
