@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Async bool
 	Paths []Path
 }
 
