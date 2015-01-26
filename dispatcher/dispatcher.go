@@ -15,12 +15,6 @@ type Dispatcher struct {
 	OnFile   func(e Event, path Path, messages chan<- string)
 	watcher  *inotify.Watcher
 	messages chan string
-	queue    chan queueEvent
-}
-
-type queueEvent struct {
-	Event
-	Path
 }
 
 func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
@@ -80,9 +74,10 @@ func (d *Dispatcher) handleCloseFile(e *Event) error {
 		return fmt.Errorf("no match found: %s", e.Name)
 	}
 	if d.OnFile != nil {
-		d.queue <- queueEvent{
-			Event: *e,
-			Path:  p,
+		if d.Async {
+			go d.OnFile(*e, p, d.messages)
+		} else {
+			d.OnFile(*e, p, d.messages)
 		}
 	}
 	return nil
@@ -97,31 +92,15 @@ func (d *Dispatcher) Watch() error {
 	return nil
 }
 
-func (d *Dispatcher) processMessages() {
-	for {
-		select {
-		case msg := <-d.messages:
-			log.Print(msg)
-		}
-	}
-}
-
-func (d *Dispatcher) processEvents() {
-	for {
-		select {
-		case qe := <-d.queue:
-			if d.Async {
-				go d.OnFile(qe.Event, qe.Path, d.messages)
-			} else {
-				d.OnFile(qe.Event, qe.Path, d.messages)
+func (d *Dispatcher) Serve() {
+	go func() {
+		for {
+			select {
+			case msg := <-d.messages:
+				log.Print(msg)
 			}
 		}
-	}
-}
-
-func (d *Dispatcher) Serve() {
-	go d.processMessages()
-	go d.processEvents()
+	}()
 	for {
 		select {
 		case ev := <-d.watcher.Event:
@@ -146,11 +125,9 @@ func New(cfg Config) (*Dispatcher, error) {
 		return nil, err
 	}
 	messages := make(chan string)
-	queue := make(chan queueEvent)
 	return &Dispatcher{
 		Config:   cfg,
 		watcher:  watcher,
 		messages: messages,
-		queue:    queue,
 	}, nil
 }
