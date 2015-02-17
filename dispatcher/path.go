@@ -75,11 +75,8 @@ func (p *Path) newCmd(tmpl string, v CommandValues) (*exec.Cmd, error) {
 	if len(argv) == 0 {
 		return nil, fmt.Errorf("template compiled to empty command")
 	}
-	cmd := exec.Command(argv[0])
+	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = v.Dir
-	if len(argv) > 1 {
-		cmd.Args = argv[1:]
-	}
 	return cmd, nil
 }
 

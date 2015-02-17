@@ -87,17 +87,20 @@ func TestParseUnpackCommand(t *testing.T) {
 	if cmd.Path != cmdPath {
 		t.Fatalf("Expected %s, got %s", cmdPath, cmd.Path)
 	}
-	if cmd.Args[0] != "-xf" {
-		t.Fatalf("Expected '-xf', got '%s'", cmd.Args[0])
+	if cmd.Args[0] != "tar" {
+		t.Fatalf("Expected 'tar', got '%s'", cmd.Args[0])
 	}
-	if cmd.Args[1] != values.Name {
-		t.Fatalf("Expected '%s', got '%s'", values.Name, cmd.Args[1])
+	if cmd.Args[1] != "-xf" {
+		t.Fatalf("Expected '-xf', got '%s'", cmd.Args[1])
 	}
-	if cmd.Args[2] != values.Base {
-		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[2])
+	if cmd.Args[2] != values.Name {
+		t.Fatalf("Expected '%s', got '%s'", values.Name, cmd.Args[2])
 	}
-	if cmd.Args[3] != values.Dir {
+	if cmd.Args[3] != values.Base {
 		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[3])
+	}
+	if cmd.Args[4] != values.Dir {
+		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[4])
 	}
 
 	p = Path{
