@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var Colorize colorstring.Colorize
@@ -100,7 +101,7 @@ func (u *unpack) PostRun(archive string) error {
 		return err
 	}
 	u.log("[green]Executed post command: %s[reset]",
-		u.Path.PostCommand)
+		strings.Join(cmd.Args, " "))
 	return nil
 }
 
@@ -180,13 +181,12 @@ func OnFile(e dispatcher.Event, p dispatcher.Path, m chan<- string) {
 		u.log("[red]Failed to unpack: %s[reset]", err)
 		return
 	}
-	if err := u.PostRun(archive); err != nil {
-		u.log("[red]Failed to run post command: %s[reset]", err)
-		return
-	}
 	if u.Path.Remove {
 		if err := u.RemoveFiles(); err != nil {
 			u.log("[red]Failed to delete files: %s[reset]", err)
 		}
+	}
+	if err := u.PostRun(archive); err != nil {
+		u.log("[red]Failed to run post command: %s[reset]", err)
 	}
 }
