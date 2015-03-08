@@ -11,8 +11,9 @@ import (
 
 func main() {
 	var opts struct {
-		Config string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
-		Colors bool   `short:"c" long:"colors" description:"Use colors in log output"`
+		BufferSize int    `short:"b" long:"buffer-size" description:"Number of events to buffer" value-name:"COUNT" default:"100"`
+		Config     string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
+		Colors     bool   `short:"c" long:"colors" description:"Use colors in log output"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -30,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	d, err := dispatcher.New(cfg)
+	d, err := dispatcher.New(cfg, opts.BufferSize)
 	if err != nil {
 		log.Fatal(err)
 	}

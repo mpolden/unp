@@ -15,6 +15,7 @@ type Dispatcher struct {
 	OnFile   func(e Event, path Path, messages chan<- string)
 	watcher  *inotify.Watcher
 	messages chan string
+	events   chan Event
 }
 
 func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
@@ -101,33 +102,43 @@ func (d *Dispatcher) Serve() {
 			}
 		}
 	}()
+	go func() {
+		for {
+			select {
+			case e := <-d.events:
+				if err := d.handleCreateDir(&e); err != nil {
+					d.messages <- fmt.Sprintf("Skipping event: %s",
+						err)
+				}
+				if err := d.handleCloseFile(&e); err != nil {
+					d.messages <- fmt.Sprintf("Skipping event: %s",
+						err)
+				}
+			}
+		}
+	}()
 	for {
 		select {
 		case ev := <-d.watcher.Event:
-			e := Event(*ev)
-			if err := d.handleCreateDir(&e); err != nil {
-				d.messages <- fmt.Sprintf("Skipping event: %s",
-					err)
-			}
-			if err := d.handleCloseFile(&e); err != nil {
-				d.messages <- fmt.Sprintf("Skipping event: %s",
-					err)
-			}
+			d.events <- Event(*ev)
 		case err := <-d.watcher.Error:
 			log.Print(err)
 		}
 	}
 }
 
-func New(cfg Config) (*Dispatcher, error) {
+func New(cfg Config, bufferSize int) (*Dispatcher, error) {
 	watcher, err := inotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	messages := make(chan string)
+	// Buffer events so that we don't miss any
+	events := make(chan Event, bufferSize)
 	return &Dispatcher{
 		Config:   cfg,
 		watcher:  watcher,
 		messages: messages,
+		events:   events,
 	}, nil
 }
