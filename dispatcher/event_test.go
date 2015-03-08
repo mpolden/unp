@@ -74,14 +74,14 @@ func TestDir(t *testing.T) {
 		Name: "/foo/bar",
 	}
 	if dir := e.Dir(); dir != "/foo/bar" {
-		t.Fatal("Expected '/foo/bar', got '%s'", dir)
+		t.Fatalf("Expected '/foo/bar', got '%s'", dir)
 	}
 	e = Event{
 		Mask: inotify.IN_CLOSE,
 		Name: "/foo/bar",
 	}
 	if dir := e.Dir(); dir != "/foo" {
-		t.Fatal("Expected '/foo', got '%s'", dir)
+		t.Fatalf("Expected '/foo', got '%s'", dir)
 	}
 }
 
@@ -91,7 +91,7 @@ func TestBase(t *testing.T) {
 		Name: "/foo/bar",
 	}
 	if base := e.Base(); base != "bar" {
-		t.Fatal("Expected 'bar', got '%s'", base)
+		t.Fatalf("Expected 'bar', got '%s'", base)
 	}
 }
 
