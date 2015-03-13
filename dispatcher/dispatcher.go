@@ -12,10 +12,11 @@ const flags = inotify.IN_CREATE | inotify.IN_CLOSE | inotify.IN_CLOSE_WRITE
 
 type Dispatcher struct {
 	Config
-	OnFile   func(e Event, path Path, messages chan<- string)
-	watcher  *inotify.Watcher
-	messages chan string
-	events   chan Event
+	OnFile    func(e Event, path Path, messages chan<- string)
+	watcher   *inotify.Watcher
+	messages  chan string
+	createDir chan Event
+	closeFile chan Event
 }
 
 func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
@@ -105,14 +106,21 @@ func (d *Dispatcher) Serve() {
 	go func() {
 		for {
 			select {
-			case e := <-d.events:
+			case e := <-d.createDir:
 				if err := d.handleCreateDir(&e); err != nil {
-					d.messages <- fmt.Sprintf("Skipping event: %s",
-						err)
+					d.messages <- fmt.Sprintf(
+						"Skipping event: %s", err)
 				}
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case e := <-d.closeFile:
 				if err := d.handleCloseFile(&e); err != nil {
-					d.messages <- fmt.Sprintf("Skipping event: %s",
-						err)
+					d.messages <- fmt.Sprintf(
+						"Skipping event: %s", err)
 				}
 			}
 		}
@@ -120,7 +128,12 @@ func (d *Dispatcher) Serve() {
 	for {
 		select {
 		case ev := <-d.watcher.Event:
-			d.events <- Event(*ev)
+			e := Event(*ev)
+			if e.IsCreate() && e.IsDir() {
+				d.createDir <- e
+			} else if e.IsClose() || e.IsCloseWrite() {
+				d.closeFile <- e
+			}
 		case err := <-d.watcher.Error:
 			log.Print(err)
 		}
@@ -134,11 +147,13 @@ func New(cfg Config, bufferSize int) (*Dispatcher, error) {
 	}
 	messages := make(chan string)
 	// Buffer events so that we don't miss any
-	events := make(chan Event, bufferSize)
+	createDir := make(chan Event, bufferSize)
+	closeFile := make(chan Event, bufferSize)
 	return &Dispatcher{
-		Config:   cfg,
-		watcher:  watcher,
-		messages: messages,
-		events:   events,
+		Config:    cfg,
+		watcher:   watcher,
+		messages:  messages,
+		createDir: createDir,
+		closeFile: closeFile,
 	}, nil
 }
