@@ -1,12 +1,14 @@
 package main
 
 import (
-	"github.com/jessevdk/go-flags"
-	"github.com/martinp/gounpack/dispatcher"
-	"github.com/martinp/gounpack/unpack"
 	"log"
 	"os"
 	"path/filepath"
+
+	flags "github.com/jessevdk/go-flags"
+
+	"github.com/martinp/gounpack/dispatcher"
+	"github.com/martinp/gounpack/unpack"
 )
 
 func main() {
@@ -36,10 +38,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := d.Watch(); err != nil {
-		log.Print(err)
-	}
-
 	d.OnFile = unpack.OnFile
-	d.Serve()
+	msgs := d.Serve()
+	for {
+		select {
+		case msg := <-msgs:
+			log.Print(msg)
+		}
+	}
 }

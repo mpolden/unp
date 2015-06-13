@@ -2,21 +2,21 @@ package dispatcher
 
 import (
 	"fmt"
-	"golang.org/x/exp/inotify"
-	"log"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/exp/inotify"
 )
 
 const flags = inotify.IN_CREATE | inotify.IN_CLOSE | inotify.IN_CLOSE_WRITE
 
 type Dispatcher struct {
 	Config
-	OnFile    func(e Event, path Path, messages chan<- string)
+	OnFile    func(e Event, path Path, message chan<- string)
 	watcher   *inotify.Watcher
-	messages  chan string
-	createDir chan Event
-	closeFile chan Event
+	message   chan string
+	dirEvent  chan Event
+	fileEvent chan Event
 }
 
 func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
@@ -37,27 +37,21 @@ func (d *Dispatcher) watchDir(path string, info os.FileInfo, err error) error {
 		return fmt.Errorf("incorrect depth: %s depth:%d max:%d",
 			path, depth, p.MaxDepth-1)
 	}
-	log.Printf("Watching path: %s", path)
+	d.message <- fmt.Sprintf("Watching path: %s", path)
 	if err := d.watcher.AddWatch(path, flags); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Dispatcher) handleCreateDir(e *Event) error {
-	if !e.IsCreate() || !e.IsDir() {
-		return nil
-	}
-	if err := filepath.Walk(e.Name, d.watchDir); err != nil {
+func (d *Dispatcher) createDir(name string) error {
+	if err := filepath.Walk(name, d.watchDir); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Dispatcher) handleCloseFile(e *Event) error {
-	if !e.IsClose() && !e.IsCloseWrite() {
-		return nil
-	}
+func (d *Dispatcher) closeFile(e *Event) error {
 	p, ok := d.FindPath(e.Name)
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Name)
@@ -77,67 +71,64 @@ func (d *Dispatcher) handleCloseFile(e *Event) error {
 	}
 	if d.OnFile != nil {
 		if d.Async {
-			go d.OnFile(*e, p, d.messages)
+			go d.OnFile(*e, p, d.message)
 		} else {
-			d.OnFile(*e, p, d.messages)
+			d.OnFile(*e, p, d.message)
 		}
 	}
 	return nil
 }
 
-func (d *Dispatcher) Watch() error {
+func (d *Dispatcher) watch() {
 	for _, path := range d.Paths {
-		if err := filepath.Walk(path.Name, d.watchDir); err != nil {
-			return err
+		if err := d.createDir(path.Name); err != nil {
+			d.message <- err.Error()
 		}
 	}
-	return nil
 }
 
-func (d *Dispatcher) Serve() {
-	go func() {
-		for {
-			select {
-			case msg := <-d.messages:
-				log.Print(msg)
-			}
-		}
-	}()
-	go func() {
-		for {
-			select {
-			case e := <-d.createDir:
-				if err := d.handleCreateDir(&e); err != nil {
-					d.messages <- fmt.Sprintf(
-						"Skipping event: %s", err)
-				}
-			}
-		}
-	}()
-	go func() {
-		for {
-			select {
-			case e := <-d.closeFile:
-				if err := d.handleCloseFile(&e); err != nil {
-					d.messages <- fmt.Sprintf(
-						"Skipping event: %s", err)
-				}
-			}
-		}
-	}()
+func (d *Dispatcher) readDirEvent() {
 	for {
 		select {
-		case ev := <-d.watcher.Event:
-			e := Event(*ev)
-			if e.IsCreate() && e.IsDir() {
-				d.createDir <- e
-			} else if e.IsClose() || e.IsCloseWrite() {
-				d.closeFile <- e
+		case e := <-d.dirEvent:
+			if err := d.createDir(e.Name); err != nil {
+				d.message <- fmt.Sprintf("Skipping event: %s", err)
 			}
-		case err := <-d.watcher.Error:
-			log.Print(err)
 		}
 	}
+}
+
+func (d *Dispatcher) readFileEvent() {
+	for {
+		select {
+		case e := <-d.fileEvent:
+			if err := d.closeFile(&e); err != nil {
+				d.message <- fmt.Sprintf("Skipping event: %s", err)
+			}
+		}
+	}
+}
+
+func (d *Dispatcher) Serve() <-chan string {
+	go d.watch()
+	go d.readDirEvent()
+	go d.readFileEvent()
+	go func() {
+		for {
+			select {
+			case ev := <-d.watcher.Event:
+				e := Event(*ev)
+				if e.IsCreate() && e.IsDir() {
+					d.dirEvent <- e
+				} else if e.IsClose() || e.IsCloseWrite() {
+					d.fileEvent <- e
+				}
+			case err := <-d.watcher.Error:
+				d.message <- err.Error()
+			}
+		}
+	}()
+	return d.message
 }
 
 func New(cfg Config, bufferSize int) (*Dispatcher, error) {
@@ -145,15 +136,15 @@ func New(cfg Config, bufferSize int) (*Dispatcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	messages := make(chan string)
 	// Buffer events so that we don't miss any
-	createDir := make(chan Event, bufferSize)
-	closeFile := make(chan Event, bufferSize)
+	message := make(chan string, bufferSize)
+	dirEvent := make(chan Event, bufferSize)
+	fileEvent := make(chan Event, bufferSize)
 	return &Dispatcher{
 		Config:    cfg,
 		watcher:   watcher,
-		messages:  messages,
-		createDir: createDir,
-		closeFile: closeFile,
+		message:   message,
+		dirEvent:  dirEvent,
+		fileEvent: fileEvent,
 	}, nil
 }
