@@ -1,46 +1,56 @@
 package dispatcher
 
 import (
-	"golang.org/x/exp/inotify"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+
+	"github.com/rjeczalik/notify"
 )
 
-type Event inotify.Event
+type Event struct {
+	notify.EventInfo
+}
 
 func (e *Event) Depth() int {
-	name := filepath.Clean(e.Name)
+	name := filepath.Clean(e.Path())
 	return strings.Count(name, string(os.PathSeparator))
 }
 
 func (e *Event) IsDir() bool {
-	return e.Mask&inotify.IN_ISDIR == inotify.IN_ISDIR
-}
-
-func (e *Event) IsCreate() bool {
-	return e.Mask&inotify.IN_CREATE == inotify.IN_CREATE
-}
-
-func (e *Event) IsClose() bool {
-	return e.Mask&inotify.IN_CLOSE == inotify.IN_CLOSE
+	return e.Sys().(*syscall.InotifyEvent).Mask&syscall.IN_ISDIR != 0
 }
 
 func (e *Event) IsCloseWrite() bool {
-	return e.Mask&inotify.IN_CLOSE_WRITE == inotify.IN_CLOSE_WRITE
+	return e.Event() == notify.InCloseWrite
 }
 
 func (e *Event) Dir() string {
 	if e.IsDir() {
-		return e.Name
+		return e.Path()
 	}
-	return filepath.Dir(e.Name)
+	return filepath.Dir(e.Path())
 }
 
 func (e *Event) Base() string {
-	return filepath.Base(e.Name)
+	return filepath.Base(e.Path())
+}
+
+func hidden(name string) bool {
+	return strings.HasPrefix(name, ".")
 }
 
 func (e *Event) IsHidden() bool {
-	return strings.HasPrefix(e.Base(), ".")
+	return hidden(e.Base())
+}
+
+func (e *Event) IsParentHidden() bool {
+	components := strings.Split(e.Dir(), string(os.PathSeparator))
+	for _, c := range components {
+		if hidden(c) {
+			return true
+		}
+	}
+	return false
 }

@@ -1,111 +1,134 @@
 package dispatcher
 
 import (
-	"golang.org/x/exp/inotify"
 	"testing"
+
+	"syscall"
+
+	"github.com/rjeczalik/notify"
 )
 
+type mockEvent struct {
+	name         string
+	mask         notify.Event
+	inotifyEvent *syscall.InotifyEvent
+}
+
+// Satisfy notify.EventInfo interface
+func (e *mockEvent) Path() string { return e.name }
+
+func (e *mockEvent) Event() notify.Event { return e.mask }
+
+func (e *mockEvent) Sys() interface{} { return e.inotifyEvent }
+
+func newEvent(name string, mask notify.Event) Event {
+	e := mockEvent{
+		name:         name,
+		mask:         mask,
+		inotifyEvent: &syscall.InotifyEvent{Mask: uint32(mask)},
+	}
+	return Event{&e}
+}
+
 func TestDepth(t *testing.T) {
-	e := Event{Name: "/foo"}
-	if d := e.Depth(); d != 1 {
-		t.Fatalf("Expected 1, got %d", d)
+	var tests = []struct {
+		in  Event
+		out int
+	}{
+		{newEvent("/foo", 0), 1},
+		{newEvent("/foo/", 0), 1},
+		{newEvent("/foo/bar/baz", 0), 3},
+		{newEvent("/foo/bar/baz/", 0), 3},
 	}
-	e = Event{Name: "/foo/"}
-	if d := e.Depth(); d != 1 {
-		t.Fatalf("Expected 1, got %d", d)
-	}
-	e = Event{Name: "/foo/bar/baz"}
-	if d := e.Depth(); d != 3 {
-		t.Fatalf("Expected 3, got %d", d)
-	}
-	e = Event{Name: "/foo/bar/baz/"}
-	if d := e.Depth(); d != 3 {
-		t.Fatalf("Expected 3, got %d", d)
+	for _, tt := range tests {
+		if depth := tt.in.Depth(); depth != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, depth)
+		}
 	}
 }
 
 func TestIsDir(t *testing.T) {
-	e := Event{Mask: inotify.IN_ISDIR}
-	if !e.IsDir() {
-		t.Fatal("Expected true")
+	var tests = []struct {
+		in  Event
+		out bool
+	}{
+		{newEvent("/foo", syscall.IN_ISDIR), true},
+		{newEvent("/foo", 0), false},
 	}
-	e = Event{Mask: 0}
-	if e.IsDir() {
-		t.Fatal("Expected false")
-	}
-}
-
-func TestIsCreate(t *testing.T) {
-	e := Event{Mask: inotify.IN_CREATE}
-	if !e.IsCreate() {
-		t.Fatal("Expected true")
-	}
-	e = Event{Mask: 0}
-	if e.IsCreate() {
-		t.Fatal("Expected false")
-	}
-}
-
-func TestIsClose(t *testing.T) {
-	e := Event{Mask: inotify.IN_CLOSE}
-	if !e.IsClose() {
-		t.Fatal("Expected true")
-	}
-	e = Event{Mask: 0}
-	if e.IsClose() {
-		t.Fatal("Expected false")
+	for _, tt := range tests {
+		if rv := tt.in.IsDir(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
 
 func TestIsCloseWrite(t *testing.T) {
-	e := Event{Mask: inotify.IN_CLOSE_WRITE}
-	if !e.IsCloseWrite() {
-		t.Fatal("Expected true")
+	var tests = []struct {
+		in  Event
+		out bool
+	}{
+		{newEvent("/foo", notify.InCloseWrite), true},
+		{newEvent("/foo", 0), false},
 	}
-	e = Event{Mask: 0}
-	if e.IsCloseWrite() {
-		t.Fatal("Expected false")
+	for _, tt := range tests {
+		if rv := tt.in.IsCloseWrite(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
 
 func TestDir(t *testing.T) {
-	e := Event{
-		Mask: inotify.IN_ISDIR,
-		Name: "/foo/bar",
+	var tests = []struct {
+		in  Event
+		out string
+	}{
+		{newEvent("/foo/bar", syscall.IN_ISDIR), "/foo/bar"},
+		{newEvent("/foo/bar", syscall.IN_CLOSE), "/foo"},
 	}
-	if dir := e.Dir(); dir != "/foo/bar" {
-		t.Fatalf("Expected '/foo/bar', got '%s'", dir)
-	}
-	e = Event{
-		Mask: inotify.IN_CLOSE,
-		Name: "/foo/bar",
-	}
-	if dir := e.Dir(); dir != "/foo" {
-		t.Fatalf("Expected '/foo', got '%s'", dir)
+	for _, tt := range tests {
+		if rv := tt.in.Dir(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
 
 func TestBase(t *testing.T) {
-	e := Event{
-		Mask: inotify.IN_CLOSE,
-		Name: "/foo/bar",
-	}
-	if base := e.Base(); base != "bar" {
-		t.Fatalf("Expected 'bar', got '%s'", base)
+	e := newEvent("/foo/bar", 0)
+	expected := "bar"
+	if base := e.Base(); base != expected {
+		t.Errorf("Expected %q, got %q", expected, base)
 	}
 }
 
 func TestIsHidden(t *testing.T) {
-	e := Event{
-		Name: "/foo/.bar",
+	var tests = []struct {
+		in  Event
+		out bool
+	}{
+		{newEvent("/foo/.bar", 0), true},
+		{newEvent("/foo/bar", 0), false},
+		{newEvent("/foo/.bar/baz", 0), false},
 	}
-	if !e.IsHidden() {
-		t.Fatal("Expected true")
+	for _, tt := range tests {
+		if rv := tt.in.IsHidden(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
-	e = Event{
-		Name: "/foo/bar",
+}
+
+func TestIsParentHidden(t *testing.T) {
+	var tests = []struct {
+		in  Event
+		out bool
+	}{
+		{newEvent("/foo/.bar/baz", 0), true},
+		{newEvent("/foo/.bar/baz/foo", 0), true},
+		{newEvent("/foo/.bar/baz/foo/bar", 0), true},
+		{newEvent("/foo/.bar", 0), false},
 	}
-	if e.IsHidden() {
-		t.Fatal("Expected false")
+	for _, tt := range tests {
+		if rv := tt.in.IsParentHidden(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
