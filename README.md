@@ -60,7 +60,7 @@ unpacking is often I/O bound.
 an event.
 
 `MaxDepth` sets the maximum depth allowed to trigger `UnpackCommand`. A `MaxDepth`
-of `4` would allow archives files in `/home/foo/videos/bar/baz` to trigger an
+of `5` would allow archives files in `/home/foo/videos/bar/baz` to trigger an
 event.
 
 `SkipHidden` determines whether events for hidden files (files prefix with `.`)
@@ -76,8 +76,7 @@ trigger an event.
 
 `UnpackCommand` is the command used for unpacking files.
 
-`PostCommand` is the command is an optional command to be run after
-`UnpackCommand`.
+`PostCommand` is an optional command to be run after `UnpackCommand`.
 
 ## Command templates
 
