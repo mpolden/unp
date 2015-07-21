@@ -12,13 +12,12 @@ var flags = []notify.Event{notify.InCloseWrite}
 
 type Dispatcher struct {
 	Config
-	OnFile    func(e Event, path Path, message chan<- string)
-	watcher   chan notify.EventInfo
-	message   chan string
-	fileEvent chan Event
+	OnFile  func(e Event, path Path, message chan<- string)
+	watcher chan notify.EventInfo
+	message chan string
 }
 
-func (d *Dispatcher) closeFile(e *Event) error {
+func (d *Dispatcher) processFile(e Event) error {
 	p, ok := d.FindPath(e.Path())
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Path())
@@ -38,9 +37,9 @@ func (d *Dispatcher) closeFile(e *Event) error {
 	}
 	if d.OnFile != nil {
 		if d.Async {
-			go d.OnFile(*e, p, d.message)
+			go d.OnFile(e, p, d.message)
 		} else {
-			d.OnFile(*e, p, d.message)
+			d.OnFile(e, p, d.message)
 		}
 	}
 	return nil
@@ -56,24 +55,16 @@ func (d *Dispatcher) watch() {
 	}
 }
 
-func (d *Dispatcher) readFileEvent() {
-	for {
-		select {
-		case e := <-d.fileEvent:
-			if err := d.closeFile(&e); err != nil {
-				d.message <- fmt.Sprintf("Skipping event: %s", err)
-			}
-		}
-	}
-}
-
-func (d *Dispatcher) readEvent() {
+func (d *Dispatcher) readEvents() {
 	for {
 		select {
 		case ev := <-d.watcher:
 			e := Event{ev}
-			if e.IsCloseWrite() {
-				d.fileEvent <- e
+			if !e.IsCloseWrite() {
+				continue
+			}
+			if err := d.processFile(e); err != nil {
+				d.message <- fmt.Sprintf("Skipping event: %s", err)
 			}
 		}
 	}
@@ -81,8 +72,7 @@ func (d *Dispatcher) readEvent() {
 
 func (d *Dispatcher) Serve() <-chan string {
 	d.watch()
-	go d.readFileEvent()
-	go d.readEvent()
+	go d.readEvents()
 	return d.message
 }
 
@@ -90,11 +80,9 @@ func New(cfg Config, bufferSize int) (*Dispatcher, error) {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, bufferSize)
 	message := make(chan string, bufferSize)
-	fileEvent := make(chan Event, bufferSize)
 	return &Dispatcher{
-		Config:    cfg,
-		watcher:   watcher,
-		message:   message,
-		fileEvent: fileEvent,
+		Config:  cfg,
+		watcher: watcher,
+		message: message,
 	}, nil
 }
