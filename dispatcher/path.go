@@ -33,10 +33,6 @@ func PathDepth(name string) int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
-func IsHidden(name string) bool {
-	return strings.HasPrefix(filepath.Base(name), ".")
-}
-
 func DirBase(name string) string {
 	return filepath.Join(filepath.Base(filepath.Dir(name)),
 		filepath.Base(name))
