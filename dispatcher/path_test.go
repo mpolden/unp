@@ -131,21 +131,6 @@ func TestValidDepth(t *testing.T) {
 	}
 }
 
-func TestValidDirDepth(t *testing.T) {
-	p := Path{
-		MaxDepth: 5,
-	}
-	if !p.ValidDirDepth(4) {
-		t.Fatal("Expected true")
-	}
-	if p.ValidDirDepth(5) {
-		t.Fatal("Expected false")
-	}
-	if p.ValidDirDepth(6) {
-		t.Fatal("Expected false")
-	}
-}
-
 func TestDirBase(t *testing.T) {
 	p := "/foo/bar/baz"
 	if b := DirBase(p); b != "bar/baz" {

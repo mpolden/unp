@@ -84,10 +84,6 @@ func (p *Path) NewPostCommand(v CommandValues) (*exec.Cmd, error) {
 	return p.newCmd(p.PostCommand, v)
 }
 
-func (p *Path) ValidDirDepth(depth int) bool {
-	return depth < p.MaxDepth
-}
-
 func (p *Path) ValidDepth(depth int) bool {
 	return depth >= p.MinDepth && depth <= p.MaxDepth
 }
