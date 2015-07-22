@@ -5,23 +5,24 @@ import (
 )
 
 func TestFindPath(t *testing.T) {
-	c := Config{
-		Paths: []Path{Path{Name: "/foo/bar"}},
+	c := Config{Paths: []Path{Path{Name: "/foo/bar"}}}
+	var tests = []struct {
+		in  string
+		out string
+		ok  bool
+	}{
+		{"/foo/bar/baz", "/foo/bar", true},
+		{"/foo/bar/baz/bax", "/foo/bar", true},
+		{"/foo", "", false},
+		{"/eggs/spam", "", false},
 	}
-	parent, ok := c.FindPath("/foo/bar/baz/bax")
-	if !ok {
-		t.Fatal("Expected true")
-	}
-	if parent.Name != c.Paths[0].Name {
-		t.Fatalf("Expected %s, got %s", c.Paths[0].Name, parent.Name)
-	}
-
-	parent, ok = c.FindPath("/eggs/spam")
-	if ok {
-		t.Fatal("Expected false")
-	}
-	empty := Path{}
-	if parent.Name != empty.Name {
-		t.Fatalf("Expected nil, got %+v", parent)
+	for _, tt := range tests {
+		rv, ok := c.FindPath(tt.in)
+		if ok != tt.ok {
+			t.Errorf("Expected %t, got %t", tt.ok, ok)
+		}
+		if rv.Name != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
