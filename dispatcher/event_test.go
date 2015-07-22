@@ -57,7 +57,7 @@ func TestIsDir(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if rv := tt.in.IsDir(); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
+			t.Errorf("Expected %t, got %t", tt.out, rv)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func TestIsCloseWrite(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if rv := tt.in.IsCloseWrite(); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
+			t.Errorf("Expected %t, got %t", tt.out, rv)
 		}
 	}
 }
@@ -111,7 +111,7 @@ func TestIsHidden(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if rv := tt.in.IsHidden(); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
+			t.Errorf("Expected %t, got %t", tt.out, rv)
 		}
 	}
 }
@@ -128,7 +128,7 @@ func TestIsParentHidden(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if rv := tt.in.IsParentHidden(); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
+			t.Errorf("Expected %t, got %t", tt.out, rv)
 		}
 	}
 }

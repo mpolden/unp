@@ -2,13 +2,14 @@ package unpack
 
 import (
 	"fmt"
-	"github.com/martinp/gosfv"
-	"github.com/martinp/gounpack/dispatcher"
-	"github.com/mitchellh/colorstring"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	sfv "github.com/martinp/gosfv"
+	"github.com/martinp/gounpack/dispatcher"
+	"github.com/mitchellh/colorstring"
 )
 
 var Colorize colorstring.Colorize
@@ -124,7 +125,7 @@ func (u *unpack) StatFiles() error {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
-			exists += 1
+			exists++
 		}
 	}
 	if exists != len(u.SFV.Checksums) {
