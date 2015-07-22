@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"fmt"
+	"os"
 
 	"path/filepath"
 
@@ -15,6 +16,19 @@ type Dispatcher struct {
 	OnFile  func(e Event, path Path, message chan<- string)
 	watcher chan notify.EventInfo
 	message chan string
+}
+
+func (d *Dispatcher) createDir(e Event) error {
+	return filepath.Walk(e.Path(), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			return nil
+		}
+		d.message <- fmt.Sprintf("New directory: %s", path)
+		return nil
+	})
 }
 
 func (d *Dispatcher) processFile(e Event) error {
@@ -61,7 +75,9 @@ func (d *Dispatcher) readEvents() {
 		case ev := <-d.watcher:
 			e := Event{ev}
 			if e.IsCreate() && e.IsDir() {
-				d.message <- fmt.Sprintf("New directory: %s", e.Path())
+				if err := d.createDir(e); err != nil {
+					d.message <- fmt.Sprintf("Skipping event: %s", err)
+				}
 			} else if e.IsCloseWrite() {
 				if err := d.processFile(e); err != nil {
 					d.message <- fmt.Sprintf("Skipping event: %s", err)
