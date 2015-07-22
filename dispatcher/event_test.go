@@ -124,6 +124,7 @@ func TestIsParentHidden(t *testing.T) {
 		{newEvent("/foo/.bar/baz", 0), true},
 		{newEvent("/foo/.bar/baz/foo", 0), true},
 		{newEvent("/foo/.bar/baz/foo/bar", 0), true},
+		{newEvent("/foo/.bar", syscall.IN_ISDIR), true},
 		{newEvent("/foo/.bar", 0), false},
 	}
 	for _, tt := range tests {

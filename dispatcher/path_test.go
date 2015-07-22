@@ -6,59 +6,58 @@ import (
 )
 
 func TestPathDepth(t *testing.T) {
-	if d := PathDepth("/foo"); d != 1 {
-		t.Fatalf("Expected 1, got %d", d)
+	var tests = []struct {
+		in  string
+		out int
+	}{
+		{"/foo", 1},
+		{"/foo/", 1},
+		{"/foo/bar/baz", 3},
+		{"/foo/bar/baz/", 3},
 	}
-	if d := PathDepth("/foo/"); d != 1 {
-		t.Fatalf("Expected 1, got %d", d)
-	}
-	if d := PathDepth("/foo/bar/baz"); d != 3 {
-		t.Fatalf("Expected 3, got %d", d)
-	}
-	if d := PathDepth("/foo/bar/baz/"); d != 3 {
-		t.Fatalf("Expected 3, got %d", d)
+	for _, tt := range tests {
+		if rv := PathDepth(tt.in); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
 
 func TestPathMatch(t *testing.T) {
-	p := Path{
-		Patterns: []string{"*.txt"},
+	var tests = []struct {
+		p      Path
+		in     string
+		out    bool
+		nilErr bool
+	}{
+		{Path{Patterns: []string{"*.txt"}}, "foo.txt", true, true},
+		{Path{Patterns: []string{"*.txt"}}, "foo", false, true},
+		{Path{Patterns: []string{"[bad pattern"}}, "foo", false, false},
 	}
-	match, err := p.Match("foo.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !match {
-		t.Fatal("Expected true")
-	}
-	match, err = p.Match("foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if match {
-		t.Fatal("Expected false")
-	}
-	p = Path{
-		Patterns: []string{"[bad pattern"},
-	}
-	_, err = p.Match("foo")
-	if err == nil {
-		t.Fatal("Expected error")
+
+	for _, tt := range tests {
+		rv, err := tt.p.Match(tt.in)
+		nilErr := err == nil
+		if nilErr != tt.nilErr {
+			t.Fatalf("Expected %t, got %t", tt.nilErr, nilErr)
+		}
+		if rv != tt.out {
+			t.Errorf("Expected %t, got %t", tt.out, rv)
+		}
 	}
 }
 
 func TestArchiveExtWithDot(t *testing.T) {
-	p := Path{
-		ArchiveExt: "rar",
+	var tests = []struct {
+		in  Path
+		out string
+	}{
+		{Path{ArchiveExt: "rar"}, ".rar"},
+		{Path{ArchiveExt: ".rar"}, ".rar"},
 	}
-	if ext := p.ArchiveExtWithDot(); ext != ".rar" {
-		t.Fatalf("Expected '.rar', got '%s'", ext)
-	}
-	p = Path{
-		ArchiveExt: ".rar",
-	}
-	if ext := p.ArchiveExtWithDot(); ext != ".rar" {
-		t.Fatalf("Expected '.rar', got '%s'", ext)
+	for _, tt := range tests {
+		if rv := tt.in.ArchiveExtWithDot(); rv != tt.out {
+			t.Errorf("Expected %q, got %q", tt.out, rv)
+		}
 	}
 }
 
@@ -113,21 +112,20 @@ func TestParseUnpackCommand(t *testing.T) {
 }
 
 func TestValidDepth(t *testing.T) {
-	p := Path{
-		MinDepth: 4,
-		MaxDepth: 5,
+	var tests = []struct {
+		in  int
+		out bool
+	}{
+		{3, false},
+		{4, true},
+		{5, true},
+		{6, false},
 	}
-	if p.ValidDepth(3) {
-		t.Fatal("Expected false")
-	}
-	if !p.ValidDepth(4) {
-		t.Fatal("Expected true")
-	}
-	if !p.ValidDepth(5) {
-		t.Fatal("Expected true")
-	}
-	if p.ValidDepth(6) {
-		t.Fatal("Expected false")
+	p := Path{MinDepth: 4, MaxDepth: 5}
+	for _, tt := range tests {
+		if rv := p.ValidDepth(tt.in); rv != tt.out {
+			t.Errorf("Expected %t, got %t", tt.out, rv)
+		}
 	}
 }
 
