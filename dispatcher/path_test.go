@@ -146,15 +146,6 @@ func TestValidDirDepth(t *testing.T) {
 	}
 }
 
-func TestPathIsHidden(t *testing.T) {
-	if !IsHidden("/foo/.bar") {
-		t.Fatal("Expected true")
-	}
-	if IsHidden("/foo/bar") {
-		t.Fatal("Expected false")
-	}
-}
-
 func TestDirBase(t *testing.T) {
 	p := "/foo/bar/baz"
 	if b := DirBase(p); b != "bar/baz" {
