@@ -22,6 +22,10 @@ func (e *Event) IsDir() bool {
 	return e.Sys().(*syscall.InotifyEvent).Mask&syscall.IN_ISDIR != 0
 }
 
+func (e *Event) IsCreate() bool {
+	return e.Event() == notify.InCreate
+}
+
 func (e *Event) IsCloseWrite() bool {
 	return e.Event() == notify.InCloseWrite
 }

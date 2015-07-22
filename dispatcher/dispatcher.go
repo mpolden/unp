@@ -8,7 +8,7 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-var flags = []notify.Event{notify.InCloseWrite}
+var flags = []notify.Event{notify.InCreate, notify.InCloseWrite}
 
 type Dispatcher struct {
 	Config
@@ -60,11 +60,12 @@ func (d *Dispatcher) readEvents() {
 		select {
 		case ev := <-d.watcher:
 			e := Event{ev}
-			if !e.IsCloseWrite() {
-				continue
-			}
-			if err := d.processFile(e); err != nil {
-				d.message <- fmt.Sprintf("Skipping event: %s", err)
+			if e.IsCreate() && e.IsDir() {
+				d.message <- fmt.Sprintf("New directory: %s", e.Path())
+			} else if e.IsCloseWrite() {
+				if err := d.processFile(e); err != nil {
+					d.message <- fmt.Sprintf("Skipping event: %s", err)
+				}
 			}
 		}
 	}
