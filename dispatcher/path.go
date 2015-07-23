@@ -33,11 +33,6 @@ func PathDepth(name string) int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
-func DirBase(name string) string {
-	return filepath.Join(filepath.Base(filepath.Dir(name)),
-		filepath.Base(name))
-}
-
 func (p *Path) Match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)

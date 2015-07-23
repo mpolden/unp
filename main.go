@@ -15,7 +15,6 @@ func main() {
 	var opts struct {
 		BufferSize int    `short:"b" long:"buffer-size" description:"Number of events to buffer" value-name:"COUNT" default:"100"`
 		Config     string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
-		Colors     bool   `short:"c" long:"colors" description:"Use colors in log output"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -23,7 +22,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	unpack.Colorize.Disable = !opts.Colors
 	if opts.Config == "~/.gounpackrc" {
 		home := os.Getenv("HOME")
 		opts.Config = filepath.Join(home, ".gounpackrc")
