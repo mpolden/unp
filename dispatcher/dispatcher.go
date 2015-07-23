@@ -64,8 +64,9 @@ func (d *Dispatcher) watch() {
 		recursivePath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
 			d.message <- err.Error()
+		} else {
+			d.message <- fmt.Sprintf("Watching recursively: %s", path.Name)
 		}
-		d.message <- fmt.Sprintf("Watching recursively: %s", path.Name)
 	}
 }
 
