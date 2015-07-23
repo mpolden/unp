@@ -15,7 +15,6 @@ Usage:
 Application Options:
   -b, --buffer-size=COUNT    Number of events to buffer (100)
   -f, --config=FILE          Config file (~/.gounpackrc)
-  -c, --colors               Use colors in log output
 
 Help Options:
   -h, --help                 Show this help message
