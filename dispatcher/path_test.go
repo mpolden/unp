@@ -44,7 +44,7 @@ func TestArchiveExtWithDot(t *testing.T) {
 	}
 }
 
-func TestParseUnpackCommand(t *testing.T) {
+func TestParseUnpackCmd(t *testing.T) {
 	cmdPath, err := exec.LookPath("tar")
 	if err != nil {
 		t.Fatal(err)
@@ -53,13 +53,13 @@ func TestParseUnpackCommand(t *testing.T) {
 	p := Path{
 		UnpackCommand: "tar -xf {{.Name}} {{.Base}} {{.Dir}}",
 	}
-	values := CommandValues{
+	values := CmdValues{
 		Name: "/foo/bar/baz.rar",
 		Base: "baz.rar",
 		Dir:  "/foo/bar",
 	}
 
-	cmd, err := p.NewUnpackCommand(values)
+	cmd, err := p.NewUnpackCmd(values)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestParseUnpackCommand(t *testing.T) {
 	p = Path{
 		UnpackCommand: "tar -xf {{.Bar}}",
 	}
-	_, err = p.NewUnpackCommand(values)
+	_, err = p.NewUnpackCmd(values)
 	if err == nil {
 		t.Fatal("Expected error")
 	}

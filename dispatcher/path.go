@@ -21,7 +21,7 @@ type Path struct {
 	PostCommand   string
 }
 
-type CommandValues struct {
+type CmdValues struct {
 	Name string
 	Dir  string
 	Base string
@@ -47,7 +47,7 @@ func (p *Path) ArchiveExtWithDot() string {
 	return "." + p.ArchiveExt
 }
 
-func (p *Path) newCmd(tmpl string, v CommandValues) (*exec.Cmd, error) {
+func (p *Path) newCmd(tmpl string, v CmdValues) (*exec.Cmd, error) {
 	t, err := template.New("cmd").Parse(tmpl)
 	if err != nil {
 		return nil, err
@@ -65,11 +65,11 @@ func (p *Path) newCmd(tmpl string, v CommandValues) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (p *Path) NewUnpackCommand(v CommandValues) (*exec.Cmd, error) {
+func (p *Path) NewUnpackCmd(v CmdValues) (*exec.Cmd, error) {
 	return p.newCmd(p.UnpackCommand, v)
 }
 
-func (p *Path) NewPostCommand(v CommandValues) (*exec.Cmd, error) {
+func (p *Path) NewPostCmd(v CmdValues) (*exec.Cmd, error) {
 	return p.newCmd(p.PostCommand, v)
 }
 

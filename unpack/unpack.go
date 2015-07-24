@@ -70,12 +70,12 @@ func findArchive(s *sfv.SFV, ext string) (string, error) {
 }
 
 func (u *Unpack) Run() error {
-	values := dispatcher.CommandValues{
+	values := dispatcher.CmdValues{
 		Name: u.Archive,
 		Base: u.Event.Base(),
 		Dir:  u.Event.Dir(),
 	}
-	cmd, err := u.Path.NewUnpackCommand(values)
+	cmd, err := u.Path.NewUnpackCmd(values)
 	if err != nil {
 		return err
 	}
@@ -89,12 +89,12 @@ func (u *Unpack) PostRun() (string, error) {
 	if u.Path.PostCommand == "" {
 		return "", nil
 	}
-	values := dispatcher.CommandValues{
+	values := dispatcher.CmdValues{
 		Name: u.Archive,
 		Base: u.Event.Base(),
 		Dir:  u.Event.Dir(),
 	}
-	cmd, err := u.Path.NewPostCommand(values)
+	cmd, err := u.Path.NewPostCmd(values)
 	if err != nil {
 		return "", err
 	}
