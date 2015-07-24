@@ -19,7 +19,11 @@ func (e *Event) Depth() int {
 }
 
 func (e *Event) IsDir() bool {
-	return e.Sys().(*syscall.InotifyEvent).Mask&syscall.IN_ISDIR != 0
+	inotifyEvent, ok := e.Sys().(*syscall.InotifyEvent)
+	if !ok {
+		return false
+	}
+	return inotifyEvent.Mask&syscall.IN_ISDIR != 0
 }
 
 func (e *Event) IsCreate() bool {
