@@ -5,23 +5,6 @@ import (
 	"testing"
 )
 
-func TestPathDepth(t *testing.T) {
-	var tests = []struct {
-		in  string
-		out int
-	}{
-		{"/foo", 1},
-		{"/foo/", 1},
-		{"/foo/bar/baz", 3},
-		{"/foo/bar/baz/", 3},
-	}
-	for _, tt := range tests {
-		if rv := PathDepth(tt.in); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
-		}
-	}
-}
-
 func TestPathMatch(t *testing.T) {
 	var tests = []struct {
 		p      Path

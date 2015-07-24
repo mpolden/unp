@@ -3,7 +3,6 @@ package dispatcher
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -26,11 +25,6 @@ type CommandValues struct {
 	Name string
 	Dir  string
 	Base string
-}
-
-func PathDepth(name string) int {
-	name = filepath.Clean(name)
-	return strings.Count(name, string(os.PathSeparator))
 }
 
 func (p *Path) Match(name string) (bool, error) {
