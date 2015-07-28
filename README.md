@@ -15,6 +15,7 @@ Usage:
 Application Options:
   -b, --buffer-size=COUNT    Number of events to buffer (100)
   -f, --config=FILE          Config file (~/.gounpackrc)
+  -t, --test                 Test and print config
 
 Help Options:
   -h, --help                 Show this help message
@@ -36,7 +37,7 @@ Help Options:
         "*.sfv"
       ],
       "Remove": false,
-      "ArchiveExt": "rar",
+      "ArchiveExt": ".rar",
       "UnpackCommand": "dtrx --noninteractive --recursive --flat {{.Name}}",
       "PostCommand": "mv {{.Dir}} /tmp/"
     }
