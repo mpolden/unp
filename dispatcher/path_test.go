@@ -29,21 +29,6 @@ func TestPathMatch(t *testing.T) {
 	}
 }
 
-func TestArchiveExtWithDot(t *testing.T) {
-	var tests = []struct {
-		in  Path
-		out string
-	}{
-		{Path{ArchiveExt: "rar"}, ".rar"},
-		{Path{ArchiveExt: ".rar"}, ".rar"},
-	}
-	for _, tt := range tests {
-		if rv := tt.in.ArchiveExtWithDot(); rv != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
-		}
-	}
-}
-
 func TestParseUnpackCmd(t *testing.T) {
 	cmdPath, err := exec.LookPath("tar")
 	if err != nil {

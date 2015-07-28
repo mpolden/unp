@@ -40,13 +40,6 @@ func (p *Path) Match(name string) (bool, error) {
 	return false, nil
 }
 
-func (p *Path) ArchiveExtWithDot() string {
-	if strings.HasPrefix(p.ArchiveExt, ".") {
-		return p.ArchiveExt
-	}
-	return "." + p.ArchiveExt
-}
-
 func (p *Path) newCmd(tmpl string, v CmdValues) (*exec.Cmd, error) {
 	t, err := template.New("cmd").Parse(tmpl)
 	if err != nil {

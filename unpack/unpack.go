@@ -23,7 +23,7 @@ func New(e dispatcher.Event, p dispatcher.Path) (*Unpack, error) {
 	if err != nil {
 		return nil, err
 	}
-	archive, err := findArchive(sfv, p.ArchiveExtWithDot())
+	archive, err := findArchive(sfv, p.ArchiveExt)
 	if err != nil {
 		return nil, err
 	}
