@@ -37,12 +37,7 @@ func main() {
 		return
 	}
 
-	d, err := dispatcher.New(cfg, opts.BufferSize)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	d.OnFile = unpack.OnFile
+	d := dispatcher.New(cfg, opts.BufferSize, unpack.OnFile)
 	msgs := d.Serve()
 	for {
 		select {

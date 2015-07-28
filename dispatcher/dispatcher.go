@@ -11,9 +11,11 @@ import (
 
 var flags = []notify.Event{notify.InCreate, notify.InCloseWrite}
 
+type OnFile func(event Event, path Path, message chan<- string)
+
 type Dispatcher struct {
 	Config
-	OnFile  func(e Event, path Path, message chan<- string)
+	onFile  OnFile
 	watcher chan notify.EventInfo
 	message chan string
 }
@@ -49,12 +51,10 @@ func (d *Dispatcher) processFile(e Event) error {
 		}
 		return fmt.Errorf("no match found: %s", e.Path())
 	}
-	if d.OnFile != nil {
-		if d.Async {
-			go d.OnFile(e, p, d.message)
-		} else {
-			d.OnFile(e, p, d.message)
-		}
+	if d.Async {
+		go d.onFile(e, p, d.message)
+	} else {
+		d.onFile(e, p, d.message)
 	}
 	return nil
 }
@@ -94,7 +94,7 @@ func (d *Dispatcher) Serve() <-chan string {
 	return d.message
 }
 
-func New(cfg Config, bufferSize int) (*Dispatcher, error) {
+func New(cfg Config, bufferSize int, handler OnFile) *Dispatcher {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, bufferSize)
 	message := make(chan string, bufferSize)
@@ -102,5 +102,6 @@ func New(cfg Config, bufferSize int) (*Dispatcher, error) {
 		Config:  cfg,
 		watcher: watcher,
 		message: message,
-	}, nil
+		onFile:  handler,
+	}
 }
