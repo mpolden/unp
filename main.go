@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ func main() {
 	var opts struct {
 		BufferSize int    `short:"b" long:"buffer-size" description:"Number of events to buffer" value-name:"COUNT" default:"100"`
 		Config     string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
+		Test       bool   `short:"t" long:"test" description:"Test and print config"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -29,6 +31,10 @@ func main() {
 	cfg, err := dispatcher.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if opts.Test {
+		fmt.Printf("%+v\n", cfg)
+		return
 	}
 
 	d, err := dispatcher.New(cfg, opts.BufferSize)
