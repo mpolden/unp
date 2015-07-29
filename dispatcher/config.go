@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -56,10 +55,8 @@ func (c *Config) Validate() error {
 		if !strings.HasPrefix(p.ArchiveExt, ".") {
 			return fmt.Errorf("file extension missing dot prefix: %s", p.ArchiveExt)
 		}
-		for _, pattern := range p.Patterns {
-			if _, err := filepath.Match(pattern, "foo.bar"); err != nil {
-				return fmt.Errorf("%s: %s", err, pattern)
-			}
+		if _, err := p.Match("foo.bar"); err != nil {
+			return err
 		}
 		if err := isExecutable(p.UnpackCommand); err != nil {
 			return err

@@ -31,7 +31,7 @@ func (p *Path) Match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("%s: %s", err, pattern)
 		}
 		if matched {
 			return true, nil
