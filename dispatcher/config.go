@@ -35,11 +35,7 @@ func isExecutable(s string) error {
 		return nil
 	}
 	args := strings.Split(s, " ")
-	path, err := exec.LookPath(args[0])
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(path); err != nil {
+	if _, err := exec.LookPath(args[0]); err != nil {
 		return err
 	}
 	return nil
