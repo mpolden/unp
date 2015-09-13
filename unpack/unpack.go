@@ -2,7 +2,6 @@ package unpack
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,7 @@ type Unpack struct {
 }
 
 func New(e dispatcher.Event, p dispatcher.Path) (*Unpack, error) {
-	sfv, err := readSFV(e.Dir())
+	sfv, err := sfv.Find(e.Dir())
 	if err != nil {
 		return nil, err
 	}
@@ -33,31 +32,6 @@ func New(e dispatcher.Event, p dispatcher.Path) (*Unpack, error) {
 		Path:    p,
 		Archive: archive,
 	}, nil
-}
-
-func findSFV(path string) (string, error) {
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		return "", err
-	}
-	for _, f := range files {
-		if filepath.Ext(f.Name()) == ".sfv" {
-			return filepath.Join(path, f.Name()), nil
-		}
-	}
-	return "", fmt.Errorf("no sfv found in %s", path)
-}
-
-func readSFV(path string) (*sfv.SFV, error) {
-	sfvFile, err := findSFV(path)
-	if err != nil {
-		return nil, err
-	}
-	sfv, err := sfv.Read(sfvFile)
-	if err != nil {
-		return nil, err
-	}
-	return sfv, nil
 }
 
 func findArchive(s *sfv.SFV, ext string) (string, error) {
