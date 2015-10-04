@@ -1,0 +1,29 @@
+---
+- hosts: all
+  sudo: yes
+  roles:
+    - ntp
+    - golang
+  tasks:
+    - name: install packages
+      apt: pkg={{ item }} state=latest update_cache=yes cache_valid_time=3600
+      with_items:
+        - git
+        - make
+    - name: hide login message
+      copy: dest=/home/vagrant/.hushlogin
+            content=
+            owner=vagrant
+            group=vagrant
+            mode=0644
+    - name: create bash_profile
+      copy: content="export GOPATH=/go\nexport PATH=${GOPATH}/bin:$PATH\ncd ${GOPATH}/src/github.com/martinp/gounpack\n"
+            dest=/home/vagrant/.bash_profile
+            owner=vagrant
+            group=vagrant
+            mode=0644
+    - name: set workspace permissions
+      file: path=/go
+            owner=vagrant
+            group=vagrant
+            recurse=yes
