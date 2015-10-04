@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "chef/ubuntu-14.04"
+  config.vm.box = "debian/jessie64"
   config.vm.synced_folder ".", "/go/src/github.com/martinp/gounpack"
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", "512"]
