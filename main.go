@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	flags "github.com/jessevdk/go-flags"
 
@@ -24,16 +23,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	if opts.Config == "~/.gounpackrc" {
-		home := os.Getenv("HOME")
-		opts.Config = filepath.Join(home, ".gounpackrc")
-	}
 	cfg, err := dispatcher.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if opts.Test {
-		fmt.Printf("%+v\n", cfg)
+		json, err := cfg.JSON()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s\n", json)
 		return
 	}
 
