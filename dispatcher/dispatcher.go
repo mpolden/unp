@@ -3,6 +3,8 @@ package dispatcher
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"path/filepath"
 
@@ -18,6 +20,7 @@ type Dispatcher struct {
 	onFile  OnFile
 	watcher chan notify.EventInfo
 	message chan string
+	signal  chan os.Signal
 }
 
 func (d *Dispatcher) createDir(e Event) error {
@@ -70,6 +73,14 @@ func (d *Dispatcher) watch() {
 	}
 }
 
+func (d *Dispatcher) rewatch() {
+	for {
+		s := <-d.signal
+		d.message <- fmt.Sprintf("Received %s, rewatching directories", s)
+		d.watch()
+	}
+}
+
 func (d *Dispatcher) readEvents() {
 	for {
 		select {
@@ -90,6 +101,7 @@ func (d *Dispatcher) readEvents() {
 
 func (d *Dispatcher) Serve() <-chan string {
 	d.watch()
+	go d.rewatch()
 	go d.readEvents()
 	return d.message
 }
@@ -98,10 +110,13 @@ func New(cfg Config, bufferSize int, handler OnFile) *Dispatcher {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, bufferSize)
 	message := make(chan string, bufferSize)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGUSR2)
 	return &Dispatcher{
 		Config:  cfg,
 		watcher: watcher,
 		message: message,
 		onFile:  handler,
+		signal:  sig,
 	}
 }
