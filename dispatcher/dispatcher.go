@@ -73,11 +73,19 @@ func (d *Dispatcher) watch() {
 	}
 }
 
-func (d *Dispatcher) rewatch() {
+func (d *Dispatcher) reload() {
 	for {
 		s := <-d.signal
-		d.message <- fmt.Sprintf("Received %s, rewatching directories", s)
-		d.watch()
+		d.message <- fmt.Sprintf("Received %s, reloading configuration", s)
+		cfg, err := ReadConfig(d.Config.filename)
+		if err == nil {
+			d.message <- "Removing all watches"
+			notify.Stop(d.watcher)
+			d.Config = cfg
+			d.watch()
+		} else {
+			d.message <- fmt.Sprintf("Failed to read config: %s", err)
+		}
 	}
 }
 
@@ -101,7 +109,7 @@ func (d *Dispatcher) readEvents() {
 
 func (d *Dispatcher) Serve() <-chan string {
 	d.watch()
-	go d.rewatch()
+	go d.reload()
 	go d.readEvents()
 	return d.message
 }

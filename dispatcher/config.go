@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	Async   bool
-	Default Path
-	Paths   []Path
+	Async    bool
+	Default  Path
+	Paths    []Path
+	filename string `json:"-"`
 }
 
 func readConfig(r io.Reader) (Config, error) {
@@ -55,6 +56,7 @@ func ReadConfig(name string) (Config, error) {
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
+	cfg.filename = name
 	return cfg, nil
 }
 
