@@ -4,6 +4,7 @@
 Vagrant.configure("2") do |config|
   mountpoint = "/go/src/github.com/martinp/gounpack"
   config.vm.box = "debian/jessie64"
+  config.vm.box_version = "8.2.1"
   config.vm.synced_folder ".", mountpoint
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", "512"]
