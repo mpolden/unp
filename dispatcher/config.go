@@ -15,7 +15,7 @@ type Config struct {
 	Async    bool
 	Default  Path
 	Paths    []Path
-	filename string `json:"-"`
+	filename string
 }
 
 func readConfig(r io.Reader) (Config, error) {

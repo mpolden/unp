@@ -22,7 +22,7 @@ func TestFindPath(t *testing.T) {
 			t.Errorf("Expected %t, got %t", tt.ok, ok)
 		}
 		if rv.Name != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv)
+			t.Errorf("Expected %q, got %q", tt.out, rv.Name)
 		}
 	}
 }
