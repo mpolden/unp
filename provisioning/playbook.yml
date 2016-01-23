@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  sudo: yes
+  become: yes
   roles:
     - ntp
     - golang
@@ -17,7 +17,7 @@
             group=vagrant
             mode=0644
     - name: create bash_profile
-      copy: content="export GOPATH=/go\nexport PATH=${GOPATH}/bin:$PATH\ncd ${GOPATH}/src/github.com/martinp/gounpack\n"
+      copy: content="export GOPATH=/go\nexport PATH=${GOPATH}/bin:/usr/local/go/bin:$PATH\ncd ${GOPATH}/src/github.com/martinp/gounpack\n"
             dest=/home/vagrant/.bash_profile
             owner=vagrant
             group=vagrant

@@ -1,11 +1,26 @@
 ---
-- name: install golang
-  shell: curl -L https://storage.googleapis.com/golang/go{{ go.version }}.linux-amd64.tar.gz | tar -zxC /usr/local
-         creates=/usr/local/go
+- name: detect installed version
+  command: head -1 {{ go.path_prefix }}/go/VERSION
+  ignore_errors: yes
+  register: go_version
+  changed_when: go_version.stdout != 'go{}'.format(go.version)
 
-- name: configure path
-  copy: content="[ -d /usr/local/go/bin ] && export PATH=/usr/local/go/bin:$PATH\n"
-        dest=/etc/profile.d/golang.sh
-        owner=root
-        group=root
-        mode=0644
+- name: download tarball
+  get_url: url=https://storage.googleapis.com/golang/go{{ go.version }}.linux-amd64.tar.gz
+           dest=/var/tmp/go{{ go.version }}.linux-amd64.tar.gz
+           checksum={{ go.checksum }}
+
+- name: create path prefix
+  file: path={{ go.path_prefix }}
+        state=directory
+
+- name: remove existing version
+  file: path={{ go.path_prefix }}/go
+        state=absent
+  when: go_version.changed
+
+- name: extract tarball
+  unarchive: src=/var/tmp/go{{ go.version }}.linux-amd64.tar.gz
+             dest={{ go.path_prefix }}
+             creates={{ go.path_prefix }}/go
+             copy=no
