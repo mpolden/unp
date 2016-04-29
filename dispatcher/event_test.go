@@ -3,32 +3,12 @@ package dispatcher
 import (
 	"testing"
 
-	"syscall"
-
 	"github.com/rjeczalik/notify"
 )
 
-type mockEvent struct {
-	name         string
-	mask         notify.Event
-	inotifyEvent *syscall.InotifyEvent
-}
-
-// Satisfy notify.EventInfo interface
 func (e *mockEvent) Path() string { return e.name }
 
 func (e *mockEvent) Event() notify.Event { return e.mask }
-
-func (e *mockEvent) Sys() interface{} { return e.inotifyEvent }
-
-func newEvent(name string, mask notify.Event) Event {
-	e := mockEvent{
-		name:         name,
-		mask:         mask,
-		inotifyEvent: &syscall.InotifyEvent{Mask: uint32(mask)},
-	}
-	return Event{&e}
-}
 
 func TestDepth(t *testing.T) {
 	var tests = []struct {
@@ -52,7 +32,7 @@ func TestIsDir(t *testing.T) {
 		in  Event
 		out bool
 	}{
-		{newEvent("/foo", syscall.IN_ISDIR), true},
+		{newEvent("/foo", IsDir), true},
 		{newEvent("/foo", 0), false},
 	}
 	for _, tt := range tests {
@@ -67,7 +47,7 @@ func TestIsCreate(t *testing.T) {
 		in  Event
 		out bool
 	}{
-		{newEvent("/foo", notify.InCreate), true},
+		{newEvent("/foo", notify.Create), true},
 		{newEvent("/foo", 0), false},
 	}
 	for _, tt := range tests {
@@ -82,7 +62,7 @@ func TestIsCloseWrite(t *testing.T) {
 		in  Event
 		out bool
 	}{
-		{newEvent("/foo", notify.InCloseWrite), true},
+		{newEvent("/foo", IsCloseWrite), true},
 		{newEvent("/foo", 0), false},
 	}
 	for _, tt := range tests {
@@ -97,8 +77,8 @@ func TestDir(t *testing.T) {
 		in  Event
 		out string
 	}{
-		{newEvent("/foo/bar", syscall.IN_ISDIR), "/foo/bar"},
-		{newEvent("/foo/bar", syscall.IN_CLOSE), "/foo"},
+		{newEvent("/foo/bar", IsDir), "/foo/bar"},
+		{newEvent("/foo/bar", IsCloseWrite), "/foo"},
 	}
 	for _, tt := range tests {
 		if rv := tt.in.Dir(); rv != tt.out {
@@ -139,7 +119,7 @@ func TestIsParentHidden(t *testing.T) {
 		{newEvent("/foo/.bar/baz", 0), true},
 		{newEvent("/foo/.bar/baz/foo", 0), true},
 		{newEvent("/foo/.bar/baz/foo/bar", 0), true},
-		{newEvent("/foo/.bar", syscall.IN_ISDIR), true},
+		{newEvent("/foo/.bar", IsDir), true},
 		{newEvent("/foo/.bar", 0), false},
 	}
 	for _, tt := range tests {

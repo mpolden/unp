@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/rjeczalik/notify"
 )
@@ -18,20 +17,8 @@ func (e *Event) Depth() int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
-func (e *Event) IsDir() bool {
-	inotifyEvent, ok := e.Sys().(*syscall.InotifyEvent)
-	if !ok {
-		return false
-	}
-	return inotifyEvent.Mask&syscall.IN_ISDIR != 0
-}
-
 func (e *Event) IsCreate() bool {
-	return e.Event() == notify.InCreate
-}
-
-func (e *Event) IsCloseWrite() bool {
-	return e.Event() == notify.InCloseWrite
+	return e.Event() == notify.Create
 }
 
 func (e *Event) Dir() string {

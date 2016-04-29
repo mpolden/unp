@@ -11,8 +11,6 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-var flags = []notify.Event{notify.InCreate, notify.InCloseWrite}
-
 type OnFile func(event Event, path Path, message chan<- string)
 
 type Dispatcher struct {
