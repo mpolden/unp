@@ -1,12 +1,7 @@
 ---
 - name: set timezone
-  copy: content="Europe/Oslo\n"
-        dest=/etc/timezone
-        owner=root
-        group=root
-        mode=0644
-  notify:
-    - update timezone
+  command: timedatectl set-timezone Europe/Oslo
+  changed_when: false
 
 - name: install ntp
   apt: pkg=ntp state=latest
