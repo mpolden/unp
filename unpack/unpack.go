@@ -129,7 +129,7 @@ func OnFile(e dispatcher.Event, p dispatcher.Path, log *logrus.Logger) {
 	}
 
 	if exists, total := u.Stat(); exists != total {
-		log.Infof("Incomplete: %d/%d files", exists, total)
+		log.Infof("%s: %d/%d files", u.Event.Dir(), exists, total)
 		return
 	}
 
