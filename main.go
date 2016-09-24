@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 
 	"github.com/martinp/gounpack/dispatcher"
@@ -16,6 +17,7 @@ func main() {
 		BufferSize int    `short:"b" long:"buffer-size" description:"Number of events to buffer" value-name:"COUNT" default:"100"`
 		Config     string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
 		Test       bool   `short:"t" long:"test" description:"Test and print config"`
+		LogLevel   string `short:"L" long:"log-level" description:"Log level to use" default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -37,12 +39,12 @@ func main() {
 		return
 	}
 
-	d := dispatcher.New(cfg, opts.BufferSize, unpack.OnFile)
-	msgs := d.Serve()
-	for {
-		select {
-		case msg := <-msgs:
-			log.Print(msg)
-		}
+	log := logrus.New()
+	level, err := logrus.ParseLevel(opts.LogLevel)
+	if err != nil {
+		log.Fatal(err)
 	}
+	log.Level = level
+
+	dispatcher.New(cfg, opts.BufferSize, unpack.OnFile, log).Serve()
 }

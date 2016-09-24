@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
+
 	sfv "github.com/martinp/gosfv"
 	"github.com/martinp/gounpack/dispatcher"
 )
@@ -93,17 +95,14 @@ func (u *Unpack) Remove() (bool, error) {
 	return true, nil
 }
 
-func (u *Unpack) Stat() error {
+func (u *Unpack) Stat() (int, int) {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
 			exists++
 		}
 	}
-	if exists != len(u.SFV.Checksums) {
-		return fmt.Errorf("%s: %d/%d files", u.SFV.Path, exists, len(u.SFV.Checksums))
-	}
-	return nil
+	return exists, len(u.SFV.Checksums)
 }
 
 func (u *Unpack) Verify() error {
@@ -119,38 +118,40 @@ func (u *Unpack) Verify() error {
 	return nil
 }
 
-func OnFile(e dispatcher.Event, p dispatcher.Path, m chan<- string) {
+func OnFile(e dispatcher.Event, p dispatcher.Path, log *logrus.Logger) {
 	u, err := New(e, p)
 	if err != nil {
-		m <- err.Error()
+		log.Error(err)
 		return
 	}
-	if err := u.Stat(); err != nil {
-		m <- err.Error()
+
+	if exists, total := u.Stat(); exists != total {
+		log.Infof("Incomplete: %d/%d files", exists, total)
 		return
 	}
 
 	if err := u.Verify(); err != nil {
-		m <- fmt.Sprintf("Verification failed: %s", err)
+		log.WithError(err).Warn("Verification failed")
 		return
 	}
-	m <- fmt.Sprintf("Verified: %s", u.SFV.Path)
+
+	log.Info("Verified successfully")
 
 	if err := u.Run(); err != nil {
-		m <- fmt.Sprintf("Failed to unpack %s: %s", u.Archive, err)
+		log.WithError(err).Error("Unpacking failed")
 		return
 	}
-	m <- fmt.Sprintf("Unpacked: %s", u.Archive)
+	log.Info("Unpacked successfully")
 
 	if ok, err := u.Remove(); err != nil {
-		m <- fmt.Sprintf("Failed to delete files: %s", err)
+		log.WithError(err).Error("Failed to delete files")
 	} else if ok {
-		m <- fmt.Sprintf("Cleaned up: %s", u.Event.Dir())
+		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Cleaned up")
 	}
 
 	if cmd, err := u.PostRun(); err != nil {
-		m <- fmt.Sprintf("Failed to run post command: %s", err)
+		log.WithFields(logrus.Fields{"command": cmd}).WithError(err).Warn("Failed to run post-command")
 	} else if cmd != "" {
-		m <- fmt.Sprintf("Executed post command: %s", cmd)
+		log.WithFields(logrus.Fields{"command": cmd}).Info("Executed post-command")
 	}
 }

@@ -8,16 +8,17 @@ import (
 
 	"path/filepath"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(event Event, path Path, message chan<- string)
+type OnFile func(Event, Path, *logrus.Logger)
 
 type Dispatcher struct {
 	Config
 	onFile  OnFile
 	watcher chan notify.EventInfo
-	message chan string
+	log     *logrus.Logger
 	signal  chan os.Signal
 }
 
@@ -29,7 +30,7 @@ func (d *Dispatcher) createDir(e Event) error {
 		if !info.IsDir() {
 			return nil
 		}
-		d.message <- fmt.Sprintf("New directory: %s", path)
+		d.log.WithFields(logrus.Fields{"path": path}).Info("New directory")
 		return nil
 	})
 }
@@ -53,9 +54,9 @@ func (d *Dispatcher) processFile(e Event) error {
 		return fmt.Errorf("no match found: %s", e.Path())
 	}
 	if d.Async {
-		go d.onFile(e, p, d.message)
+		go d.onFile(e, p, d.log)
 	} else {
-		d.onFile(e, p, d.message)
+		d.onFile(e, p, d.log)
 	}
 	return nil
 }
@@ -64,9 +65,9 @@ func (d *Dispatcher) watch() {
 	for _, path := range d.Paths {
 		recursivePath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
-			d.message <- err.Error()
+			d.log.Error(err)
 		} else {
-			d.message <- fmt.Sprintf("Watching recursively: %s", path.Name)
+			d.log.WithFields(logrus.Fields{"path": path.Name}).Info("Watching recursively")
 		}
 	}
 }
@@ -74,15 +75,15 @@ func (d *Dispatcher) watch() {
 func (d *Dispatcher) reload() {
 	for {
 		s := <-d.signal
-		d.message <- fmt.Sprintf("Received %s, reloading configuration", s)
+		d.log.Infof("Received %s, reloading configuration", s)
 		cfg, err := ReadConfig(d.Config.filename)
 		if err == nil {
-			d.message <- "Removing all watches"
+			d.log.Info("Removing all watches")
 			notify.Stop(d.watcher)
 			d.Config = cfg
 			d.watch()
 		} else {
-			d.message <- fmt.Sprintf("Failed to read config: %s", err)
+			d.log.WithError(err).Errorf("Failed to read config")
 		}
 	}
 }
@@ -94,34 +95,32 @@ func (d *Dispatcher) readEvents() {
 			e := Event{ev}
 			if e.IsCreate() && e.IsDir() {
 				if err := d.createDir(e); err != nil {
-					d.message <- fmt.Sprintf("Skipping event: %s", err)
+					d.log.WithError(err).Info("Skipping event")
 				}
 			} else if e.IsCloseWrite() {
 				if err := d.processFile(e); err != nil {
-					d.message <- fmt.Sprintf("Skipping event: %s", err)
+					d.log.WithError(err).Info("Skipping event")
 				}
 			}
 		}
 	}
 }
 
-func (d *Dispatcher) Serve() <-chan string {
+func (d *Dispatcher) Serve() {
 	d.watch()
 	go d.reload()
-	go d.readEvents()
-	return d.message
+	d.readEvents()
 }
 
-func New(cfg Config, bufferSize int, handler OnFile) *Dispatcher {
+func New(cfg Config, bufferSize int, handler OnFile, log *logrus.Logger) *Dispatcher {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, bufferSize)
-	message := make(chan string, bufferSize)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR2)
 	return &Dispatcher{
 		Config:  cfg,
 		watcher: watcher,
-		message: message,
+		log:     log,
 		onFile:  handler,
 		signal:  sig,
 	}
