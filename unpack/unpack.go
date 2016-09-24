@@ -1,6 +1,7 @@
 package unpack
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,8 +75,10 @@ func (u *Unpack) PostRun() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %s", err, stderr.String())
 	}
 	return strings.Join(cmd.Args, " "), nil
 }
