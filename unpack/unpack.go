@@ -129,29 +129,32 @@ func OnFile(e dispatcher.Event, p dispatcher.Path, log *logrus.Logger) {
 	}
 
 	if exists, total := u.Stat(); exists != total {
-		log.Infof("%s: %d/%d files", u.Event.Dir(), exists, total)
+		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Infof("%d/%d files", exists, total)
 		return
 	}
 
+	// Verify
 	if err := u.Verify(); err != nil {
 		log.WithError(err).Warn("Verification failed")
 		return
 	}
+	log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Verified successfully")
 
-	log.Info("Verified successfully")
-
+	// Unpack
 	if err := u.Run(); err != nil {
 		log.WithError(err).Error("Unpacking failed")
 		return
 	}
-	log.Info("Unpacked successfully")
+	log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Unpacked successfully")
 
+	// Clean up
 	if ok, err := u.Remove(); err != nil {
 		log.WithError(err).Error("Failed to delete files")
 	} else if ok {
 		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Cleaned up")
 	}
 
+	// Run post-command
 	if cmd, err := u.PostRun(); err != nil {
 		log.WithFields(logrus.Fields{"command": cmd}).WithError(err).Warn("Failed to run post-command")
 	} else if cmd != "" {
