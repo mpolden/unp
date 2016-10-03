@@ -98,7 +98,7 @@ func (u *Unpack) Remove() (bool, error) {
 	return true, nil
 }
 
-func (u *Unpack) Stat() (int, int) {
+func (u *Unpack) FileCount() (int, int) {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
@@ -128,7 +128,7 @@ func OnFile(e dispatcher.Event, p dispatcher.Path, log *logrus.Logger) {
 		return
 	}
 
-	if exists, total := u.Stat(); exists != total {
+	if exists, total := u.FileCount(); exists != total {
 		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Infof("%d/%d files", exists, total)
 		return
 	}
