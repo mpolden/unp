@@ -89,18 +89,15 @@ func (d *Dispatcher) reload() {
 }
 
 func (d *Dispatcher) readEvents() {
-	for {
-		select {
-		case ev := <-d.watcher:
-			e := Event{ev}
-			if e.IsCreate() && e.IsDir() {
-				if err := d.createDir(e); err != nil {
-					d.log.WithError(err).Info("Skipping event")
-				}
-			} else if e.IsCloseWrite() {
-				if err := d.processFile(e); err != nil {
-					d.log.WithError(err).Info("Skipping event")
-				}
+	for ev := range d.watcher {
+		e := Event{ev}
+		if e.IsCreate() && e.IsDir() {
+			if err := d.createDir(e); err != nil {
+				d.log.WithError(err).Info("Skipping event")
+			}
+		} else if e.IsCloseWrite() {
+			if err := d.processFile(e); err != nil {
+				d.log.WithError(err).Info("Skipping event")
 			}
 		}
 	}

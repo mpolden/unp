@@ -28,7 +28,7 @@ func readConfig(r io.Reader) (Config, error) {
 	if err := json.Unmarshal(data, &defaults); err != nil {
 		return Config{}, err
 	}
-	for i, _ := range defaults.Paths {
+	for i := range defaults.Paths {
 		defaults.Paths[i] = defaults.Default
 	}
 	// Unmarshal config again, letting individual paths override the defaults
@@ -65,10 +65,8 @@ func isExecutable(s string) error {
 		return nil
 	}
 	args := strings.Split(s, " ")
-	if _, err := exec.LookPath(args[0]); err != nil {
-		return err
-	}
-	return nil
+	_, err := exec.LookPath(args[0])
+	return err
 }
 
 func (c *Config) JSON() ([]byte, error) {
