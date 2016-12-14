@@ -53,11 +53,7 @@ func (d *Dispatcher) processFile(e Event) error {
 		}
 		return fmt.Errorf("no match found: %s", e.Path())
 	}
-	if d.Async {
-		go d.onFile(e, p, d.log)
-	} else {
-		d.onFile(e, p, d.log)
-	}
+	d.onFile(e, p, d.log)
 	return nil
 }
 

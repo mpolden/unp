@@ -12,7 +12,6 @@ import (
 )
 
 type Config struct {
-	Async    bool
 	Default  Path
 	Paths    []Path
 	filename string
