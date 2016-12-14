@@ -14,10 +14,9 @@ import (
 
 func main() {
 	var opts struct {
-		BufferSize int    `short:"b" long:"buffer-size" description:"Number of events to buffer" value-name:"COUNT" default:"100"`
-		Config     string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
-		Test       bool   `short:"t" long:"test" description:"Test and print config"`
-		LogLevel   string `short:"L" long:"log-level" description:"Log level to use" default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
+		Config   string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
+		Test     bool   `short:"t" long:"test" description:"Test and print config"`
+		LogLevel string `short:"L" long:"log-level" description:"Log level to use" default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -46,5 +45,5 @@ func main() {
 	}
 	log.Level = level
 
-	dispatcher.New(cfg, opts.BufferSize, unpack.OnFile, log).Serve()
+	dispatcher.New(cfg, unpack.OnFile, log).Serve()
 }

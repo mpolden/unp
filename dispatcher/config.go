@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	Default  Path
-	Paths    []Path
-	filename string
+	Default    Path
+	BufferSize int
+	Paths      []Path
+	filename   string
 }
 
 func readConfig(r io.Reader) (Config, error) {
@@ -54,6 +55,10 @@ func ReadConfig(name string) (Config, error) {
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
+	}
+	// Set a default buffer size
+	if cfg.BufferSize <= 0 {
+		cfg.BufferSize = 100
 	}
 	cfg.filename = name
 	return cfg, nil

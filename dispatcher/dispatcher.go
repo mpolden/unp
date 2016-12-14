@@ -105,9 +105,9 @@ func (d *Dispatcher) Serve() {
 	d.readEvents()
 }
 
-func New(cfg Config, bufferSize int, handler OnFile, log *logrus.Logger) *Dispatcher {
+func New(cfg Config, handler OnFile, log *logrus.Logger) *Dispatcher {
 	// Buffer events so that we don't miss any
-	watcher := make(chan notify.EventInfo, bufferSize)
+	watcher := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR2)
 	return &Dispatcher{
