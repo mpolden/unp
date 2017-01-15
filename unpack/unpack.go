@@ -9,8 +9,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	sfv "github.com/martinp/gosfv"
 	"github.com/martinp/gounpack/dispatcher"
+	"github.com/martinp/sfv"
 )
 
 type Unpack struct {

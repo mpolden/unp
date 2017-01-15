@@ -3,7 +3,7 @@ package unpack
 import (
 	"testing"
 
-	sfv "github.com/martinp/gosfv"
+	"github.com/martinp/sfv"
 )
 
 func TestFindArchive(t *testing.T) {
