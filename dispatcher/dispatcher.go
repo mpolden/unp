@@ -13,14 +13,14 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(Event, Path, *log.Logger)
+type OnFile func(Event, Path) error
 
 type Dispatcher struct {
-	Config
+	config  Config
 	onFile  OnFile
 	watcher chan notify.EventInfo
-	log     *log.Logger
 	signal  chan os.Signal
+	log     *log.Logger
 }
 
 func (d *Dispatcher) createDir(e Event) error {
@@ -36,7 +36,7 @@ func (d *Dispatcher) createDir(e Event) error {
 }
 
 func (d *Dispatcher) processFile(e Event) error {
-	p, ok := d.FindPath(e.Path())
+	p, ok := d.config.FindPath(e.Path())
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Path())
 	}
@@ -53,12 +53,11 @@ func (d *Dispatcher) processFile(e Event) error {
 		}
 		return fmt.Errorf("no match found: %s", e.Path())
 	}
-	d.onFile(e, p, d.log)
-	return nil
+	return d.onFile(e, p)
 }
 
 func (d *Dispatcher) watch() {
-	for _, path := range d.Paths {
+	for _, path := range d.config.Paths {
 		recursivePath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
 			d.log.Printf("Failed to watch %s: %s", recursivePath, err)
@@ -72,11 +71,11 @@ func (d *Dispatcher) reload() {
 	for {
 		s := <-d.signal
 		d.log.Printf("Received %s, reloading configuration", s)
-		cfg, err := ReadConfig(d.Config.filename)
+		cfg, err := ReadConfig(d.config.filename)
 		if err == nil {
 			d.log.Print("Removing all watches")
 			notify.Stop(d.watcher)
-			d.Config = cfg
+			d.config = cfg
 			d.watch()
 		} else {
 			d.log.Printf("Failed to read config: %s", err)
@@ -111,7 +110,7 @@ func New(cfg Config, handler OnFile, log *log.Logger) *Dispatcher {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR2)
 	return &Dispatcher{
-		Config:  cfg,
+		config:  cfg,
 		watcher: watcher,
 		log:     log,
 		onFile:  handler,

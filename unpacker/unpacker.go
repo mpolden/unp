@@ -3,19 +3,19 @@ package unpack
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/martinp/gounpack/dispatcher"
 	"github.com/martinp/sfv"
+	"github.com/pkg/errors"
 )
 
 type unpacker struct {
-	SFV     *sfv.SFV
-	Event   dispatcher.Event
-	Path    dispatcher.Path
-	Archive string
+	sfv         *sfv.SFV
+	event       dispatcher.Event
+	path        dispatcher.Path
+	archivePath string
 }
 
 func newUnpacker(e dispatcher.Event, p dispatcher.Path) (*unpacker, error) {
@@ -28,10 +28,10 @@ func newUnpacker(e dispatcher.Event, p dispatcher.Path) (*unpacker, error) {
 		return nil, err
 	}
 	return &unpacker{
-		SFV:     sfv,
-		Event:   e,
-		Path:    p,
-		Archive: archive,
+		sfv:         sfv,
+		event:       e,
+		path:        p,
+		archivePath: archive,
 	}, nil
 }
 
@@ -46,11 +46,11 @@ func findArchive(s *sfv.SFV, ext string) (string, error) {
 
 func (u *unpacker) unpack() error {
 	values := dispatcher.CmdValues{
-		Name: u.Archive,
-		Base: u.Event.Base(),
-		Dir:  u.Event.Dir(),
+		Name: u.archivePath,
+		Base: u.event.Base(),
+		Dir:  u.event.Dir(),
 	}
-	cmd, err := u.Path.NewUnpackCmd(values)
+	cmd, err := u.path.NewUnpackCmd(values)
 	if err != nil {
 		return err
 	}
@@ -61,15 +61,15 @@ func (u *unpacker) unpack() error {
 }
 
 func (u *unpacker) postProcess() error {
-	if u.Path.PostCommand == "" {
+	if u.path.PostCommand == "" {
 		return nil
 	}
 	values := dispatcher.CmdValues{
-		Name: u.Archive,
-		Base: u.Event.Base(),
-		Dir:  u.Event.Dir(),
+		Name: u.archivePath,
+		Base: u.event.Base(),
+		Dir:  u.event.Dir(),
 	}
-	cmd, err := u.Path.NewPostCmd(values)
+	cmd, err := u.path.NewPostCmd(values)
 	if err != nil {
 		return err
 	}
@@ -82,68 +82,59 @@ func (u *unpacker) postProcess() error {
 }
 
 func (u *unpacker) remove() error {
-	if !u.Path.Remove {
+	if !u.path.Remove {
 		return nil
 	}
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	return os.Remove(u.SFV.Path)
+	return os.Remove(u.sfv.Path)
 }
 
 func (u *unpacker) fileCount() (int, int) {
 	exists := 0
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		if c.IsExist() {
 			exists++
 		}
 	}
-	return exists, len(u.SFV.Checksums)
+	return exists, len(u.sfv.Checksums)
 }
 
 func (u *unpacker) verify() error {
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("%s: failed checksum: %s", u.SFV.Path, c.Filename)
+			return fmt.Errorf("%s: failed checksum: %s", u.sfv.Path, c.Filename)
 		}
 	}
 	return nil
 }
 
-func OnFile(e dispatcher.Event, p dispatcher.Path, log *log.Logger) {
+func OnFile(e dispatcher.Event, p dispatcher.Path) error {
 	u, err := newUnpacker(e, p)
 	if err != nil {
-		log.Printf("Failed to create unpacker: %s", err)
-		return
+		return errors.Wrap(err, "failed to create unpacker")
 	}
-
-	exists, total := u.fileCount()
-	log.Printf("%s: %d/%d files", u.Event.Dir(), exists, total)
-	if exists != total {
-		return
+	if exists, total := u.fileCount(); exists != total {
+		return fmt.Errorf("%s is incomplete: %d/%d files", u.event.Dir(), exists, total)
 	}
-
 	if err := u.verify(); err != nil {
-		log.Printf("Verification failed: %s", err)
-		return
+		return errors.Wrapf(err, "verification of %s failed", u.event.Dir())
 	}
-
 	if err := u.unpack(); err != nil {
-		log.Printf("Unpacking failed: %s", err)
-		return
+		return errors.Wrapf(err, "unpacking %s failed", u.event.Dir())
 	}
-
 	if err := u.remove(); err != nil {
-		log.Printf("Failed to delete files: %s", err)
+		return errors.Wrapf(err, "cleaning up %s failed", u.event.Dir())
 	}
-
 	if err := u.postProcess(); err != nil {
-		log.Printf("Failed to run post-process command: %s", err)
+		return errors.Wrap(err, "running post-process command failed")
 	}
+	return nil
 }
