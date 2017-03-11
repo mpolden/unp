@@ -1,8 +1,9 @@
 package dispatcher
 
 import (
-	"fmt"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 type Path struct {
@@ -21,7 +22,7 @@ func (p *Path) match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
 		if err != nil {
-			return false, fmt.Errorf("%s: %s", err, pattern)
+			return false, errors.Wrap(err, pattern)
 		}
 		if matched {
 			return true, nil

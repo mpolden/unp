@@ -4,21 +4,20 @@ import "testing"
 
 func TestPathMatch(t *testing.T) {
 	var tests = []struct {
-		p      Path
-		in     string
-		out    bool
-		nilErr bool
+		p   Path
+		in  string
+		out bool
+		err string
 	}{
-		{Path{Patterns: []string{"*.txt"}}, "foo.txt", true, true},
-		{Path{Patterns: []string{"*.txt"}}, "foo", false, true},
-		{Path{Patterns: []string{"[bad pattern"}}, "foo", false, false},
+		{Path{Patterns: []string{"*.txt"}}, "foo.txt", true, ""},
+		{Path{Patterns: []string{"*.txt"}}, "foo", false, ""},
+		{Path{Patterns: []string{"[bad pattern"}}, "foo", false, "[bad pattern: syntax error in pattern"},
 	}
 
 	for _, tt := range tests {
 		rv, err := tt.p.match(tt.in)
-		nilErr := err == nil
-		if nilErr != tt.nilErr {
-			t.Fatalf("Expected %t, got %t", tt.nilErr, nilErr)
+		if err != nil && err.Error() != tt.err {
+			t.Fatalf("Expected error %q, got %q", tt.err, err.Error())
 		}
 		if rv != tt.out {
 			t.Errorf("Expected %t, got %t", tt.out, rv)
