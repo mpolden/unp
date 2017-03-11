@@ -55,7 +55,7 @@ func TestFindPath(t *testing.T) {
 		{"/eggs/spam", "", false},
 	}
 	for _, tt := range tests {
-		rv, ok := c.FindPath(tt.in)
+		rv, ok := c.findPath(tt.in)
 		if ok != tt.ok {
 			t.Errorf("Expected %t, got %t", tt.ok, ok)
 		}

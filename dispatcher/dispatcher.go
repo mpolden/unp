@@ -36,7 +36,7 @@ func (d *dispatcher) onDirEvent(e Event) error {
 }
 
 func (d *dispatcher) onFileEvent(e Event) error {
-	p, ok := d.config.FindPath(e.Path())
+	p, ok := d.config.findPath(e.Path())
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Path())
 	}

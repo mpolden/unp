@@ -53,7 +53,7 @@ func ReadConfig(name string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
 	// Set a default buffer size
@@ -77,7 +77,7 @@ func (c *Config) JSON() ([]byte, error) {
 	return json.MarshalIndent(c, "", "  ")
 }
 
-func (c *Config) Validate() error {
+func (c *Config) validate() error {
 	for _, p := range c.Paths {
 		fi, err := os.Stat(p.Name)
 		if err != nil {
@@ -105,7 +105,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) FindPath(name string) (Path, bool) {
+func (c *Config) findPath(name string) (Path, bool) {
 	for _, p := range c.Paths {
 		if strings.HasPrefix(name, p.Name) {
 			return p, true
