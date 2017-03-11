@@ -42,21 +42,6 @@ func TestIsDir(t *testing.T) {
 	}
 }
 
-func TestIsCreate(t *testing.T) {
-	var tests = []struct {
-		in  Event
-		out bool
-	}{
-		{newEvent("/foo", notify.Create), true},
-		{newEvent("/foo", 0), false},
-	}
-	for _, tt := range tests {
-		if rv := tt.in.IsCreate(); rv != tt.out {
-			t.Errorf("Expected %t, got %t", tt.out, rv)
-		}
-	}
-}
-
 func TestIsCloseWrite(t *testing.T) {
 	var tests = []struct {
 		in  Event

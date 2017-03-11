@@ -21,10 +21,6 @@ func (e *Event) Depth() int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
-func (e *Event) IsCreate() bool {
-	return e.eventInfo.Event() == notify.Create
-}
-
 func (e *Event) Dir() string {
 	if e.IsDir() {
 		return e.Name()

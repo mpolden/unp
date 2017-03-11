@@ -23,19 +23,7 @@ type dispatcher struct {
 	log     *log.Logger
 }
 
-func (d *dispatcher) onDirEvent(e Event) error {
-	return filepath.Walk(e.Name(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		return nil
-	})
-}
-
-func (d *dispatcher) onFileEvent(e Event) error {
+func (d *dispatcher) dispatch(e Event) error {
 	p, ok := d.config.findPath(e.Name())
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Name())
@@ -73,7 +61,6 @@ func (d *dispatcher) reload() {
 		d.log.Printf("Received %s, reloading configuration", s)
 		cfg, err := ReadConfig(d.config.filename)
 		if err == nil {
-			d.log.Print("Removing all watches")
 			notify.Stop(d.watcher)
 			d.config = cfg
 			d.watch()
@@ -86,12 +73,8 @@ func (d *dispatcher) reload() {
 func (d *dispatcher) readEvents() {
 	for ev := range d.watcher {
 		e := Event{ev}
-		if e.IsCreate() && e.IsDir() {
-			if err := d.onDirEvent(e); err != nil {
-				d.log.Printf("Skipping event: %s", err)
-			}
-		} else if e.IsCloseWrite() {
-			if err := d.onFileEvent(e); err != nil {
+		if e.IsCloseWrite() {
+			if err := d.dispatch(e); err != nil {
 				d.log.Printf("Skipping event: %s", err)
 			}
 		}
