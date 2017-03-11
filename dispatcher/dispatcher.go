@@ -15,7 +15,7 @@ import (
 
 type OnFile func(Event, Path) error
 
-type Dispatcher struct {
+type dispatcher struct {
 	config  Config
 	onFile  OnFile
 	watcher chan notify.EventInfo
@@ -23,7 +23,7 @@ type Dispatcher struct {
 	log     *log.Logger
 }
 
-func (d *Dispatcher) createDir(e Event) error {
+func (d *dispatcher) onDirEvent(e Event) error {
 	return filepath.Walk(e.Path(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -35,7 +35,7 @@ func (d *Dispatcher) createDir(e Event) error {
 	})
 }
 
-func (d *Dispatcher) processFile(e Event) error {
+func (d *dispatcher) onFileEvent(e Event) error {
 	p, ok := d.config.FindPath(e.Path())
 	if !ok {
 		return fmt.Errorf("no configured path found: %s", e.Path())
@@ -44,7 +44,7 @@ func (d *Dispatcher) processFile(e Event) error {
 		return fmt.Errorf("hidden parent dir or file: %s", e.Path())
 	}
 	if !p.validDepth(e.Depth()) {
-		return fmt.Errorf("incorrect depth: %s depth:%d min:%d max:%d",
+		return fmt.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
 			e.Path(), e.Depth(), p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.match(e.Base()); !match {
@@ -56,7 +56,7 @@ func (d *Dispatcher) processFile(e Event) error {
 	return d.onFile(e, p)
 }
 
-func (d *Dispatcher) watch() {
+func (d *dispatcher) watch() {
 	for _, path := range d.config.Paths {
 		recursivePath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
@@ -67,7 +67,7 @@ func (d *Dispatcher) watch() {
 	}
 }
 
-func (d *Dispatcher) reload() {
+func (d *dispatcher) reload() {
 	for {
 		s := <-d.signal
 		d.log.Printf("Received %s, reloading configuration", s)
@@ -83,33 +83,33 @@ func (d *Dispatcher) reload() {
 	}
 }
 
-func (d *Dispatcher) readEvents() {
+func (d *dispatcher) readEvents() {
 	for ev := range d.watcher {
 		e := Event{ev}
 		if e.IsCreate() && e.IsDir() {
-			if err := d.createDir(e); err != nil {
+			if err := d.onDirEvent(e); err != nil {
 				d.log.Printf("Skipping event: %s", err)
 			}
 		} else if e.IsCloseWrite() {
-			if err := d.processFile(e); err != nil {
+			if err := d.onFileEvent(e); err != nil {
 				d.log.Printf("Skipping event: %s", err)
 			}
 		}
 	}
 }
 
-func (d *Dispatcher) Serve() {
+func (d *dispatcher) Serve() {
 	d.watch()
 	go d.reload()
 	d.readEvents()
 }
 
-func New(cfg Config, handler OnFile, log *log.Logger) *Dispatcher {
+func New(cfg Config, handler OnFile, log *log.Logger) *dispatcher {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR2)
-	return &Dispatcher{
+	return &dispatcher{
 		config:  cfg,
 		watcher: watcher,
 		log:     log,
