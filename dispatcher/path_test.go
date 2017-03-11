@@ -1,9 +1,6 @@
 package dispatcher
 
-import (
-	"os/exec"
-	"testing"
-)
+import "testing"
 
 func TestPathMatch(t *testing.T) {
 	var tests = []struct {
@@ -26,56 +23,6 @@ func TestPathMatch(t *testing.T) {
 		if rv != tt.out {
 			t.Errorf("Expected %t, got %t", tt.out, rv)
 		}
-	}
-}
-
-func TestParseUnpackCmd(t *testing.T) {
-	cmdPath, err := exec.LookPath("tar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p := Path{
-		UnpackCommand: "tar -xf {{.Name}} {{.Base}} {{.Dir}}",
-	}
-	values := CmdValues{
-		Name: "/foo/bar/baz.rar",
-		Base: "baz.rar",
-		Dir:  "/foo/bar",
-	}
-
-	cmd, err := p.NewUnpackCmd(values)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cmd.Dir != values.Dir {
-		t.Fatalf("Expected %s, got %s", values.Dir, cmd.Dir)
-	}
-	if cmd.Path != cmdPath {
-		t.Fatalf("Expected %s, got %s", cmdPath, cmd.Path)
-	}
-	if cmd.Args[0] != "tar" {
-		t.Fatalf("Expected 'tar', got '%s'", cmd.Args[0])
-	}
-	if cmd.Args[1] != "-xf" {
-		t.Fatalf("Expected '-xf', got '%s'", cmd.Args[1])
-	}
-	if cmd.Args[2] != values.Name {
-		t.Fatalf("Expected '%s', got '%s'", values.Name, cmd.Args[2])
-	}
-	if cmd.Args[3] != values.Base {
-		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[3])
-	}
-	if cmd.Args[4] != values.Dir {
-		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[4])
-	}
-
-	p = Path{
-		UnpackCommand: "tar -xf {{.Bar}}",
-	}
-	_, err = p.NewUnpackCmd(values)
-	if err == nil {
-		t.Fatal("Expected error")
 	}
 }
 

@@ -1,4 +1,4 @@
-package unpack
+package unpacker
 
 import (
 	"bytes"
@@ -45,12 +45,12 @@ func findArchive(s *sfv.SFV, ext string) (string, error) {
 }
 
 func (u *unpacker) unpack() error {
-	values := dispatcher.CmdValues{
+	values := cmdValues{
 		Name: u.archivePath,
 		Base: u.event.Base(),
 		Dir:  u.event.Dir(),
 	}
-	cmd, err := u.path.NewUnpackCmd(values)
+	cmd, err := newCmd(u.path.UnpackCommand, values)
 	if err != nil {
 		return err
 	}
@@ -64,12 +64,12 @@ func (u *unpacker) postProcess() error {
 	if u.path.PostCommand == "" {
 		return nil
 	}
-	values := dispatcher.CmdValues{
+	values := cmdValues{
 		Name: u.archivePath,
 		Base: u.event.Base(),
 		Dir:  u.event.Dir(),
 	}
-	cmd, err := u.path.NewPostCmd(values)
+	cmd, err := newCmd(u.path.PostCommand, values)
 	if err != nil {
 		return err
 	}

@@ -37,5 +37,5 @@ func main() {
 	}
 
 	log := log.New(os.Stderr, "", log.LstdFlags)
-	dispatcher.New(cfg, unpack.OnFile, log).Serve()
+	dispatcher.New(cfg, unpacker.OnFile, log).Serve()
 }

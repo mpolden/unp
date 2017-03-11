@@ -1,12 +1,8 @@
 package dispatcher
 
 import (
-	"bytes"
 	"fmt"
-	"os/exec"
 	"path/filepath"
-	"strings"
-	"text/template"
 )
 
 type Path struct {
@@ -21,12 +17,6 @@ type Path struct {
 	PostCommand   string
 }
 
-type CmdValues struct {
-	Name string
-	Dir  string
-	Base string
-}
-
 func (p *Path) match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
@@ -38,32 +28,6 @@ func (p *Path) match(name string) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-func (p *Path) newCmd(tmpl string, v CmdValues) (*exec.Cmd, error) {
-	t, err := template.New("cmd").Parse(tmpl)
-	if err != nil {
-		return nil, err
-	}
-	var b bytes.Buffer
-	if err := t.Execute(&b, v); err != nil {
-		return nil, err
-	}
-	argv := strings.Split(b.String(), " ")
-	if len(argv) == 0 {
-		return nil, fmt.Errorf("template compiled to empty command")
-	}
-	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Dir = v.Dir
-	return cmd, nil
-}
-
-func (p *Path) NewUnpackCmd(v CmdValues) (*exec.Cmd, error) {
-	return p.newCmd(p.UnpackCommand, v)
-}
-
-func (p *Path) NewPostCmd(v CmdValues) (*exec.Cmd, error) {
-	return p.newCmd(p.PostCommand, v)
 }
 
 func (p *Path) validDepth(depth int) bool {
