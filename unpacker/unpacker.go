@@ -11,14 +11,14 @@ import (
 	"github.com/martinp/sfv"
 )
 
-type Unpack struct {
+type unpacker struct {
 	SFV     *sfv.SFV
 	Event   dispatcher.Event
 	Path    dispatcher.Path
 	Archive string
 }
 
-func New(e dispatcher.Event, p dispatcher.Path) (*Unpack, error) {
+func New(e dispatcher.Event, p dispatcher.Path) (*unpacker, error) {
 	sfv, err := sfv.Find(e.Dir())
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func New(e dispatcher.Event, p dispatcher.Path) (*Unpack, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Unpack{
+	return &unpacker{
 		SFV:     sfv,
 		Event:   e,
 		Path:    p,
@@ -44,7 +44,7 @@ func findArchive(s *sfv.SFV, ext string) (string, error) {
 	return "", fmt.Errorf("no archive file found in %s", s.Path)
 }
 
-func (u *Unpack) Run() error {
+func (u *unpacker) Run() error {
 	values := dispatcher.CmdValues{
 		Name: u.Archive,
 		Base: u.Event.Base(),
@@ -60,7 +60,7 @@ func (u *Unpack) Run() error {
 	return nil
 }
 
-func (u *Unpack) PostRun() error {
+func (u *unpacker) PostRun() error {
 	if u.Path.PostCommand == "" {
 		return nil
 	}
@@ -81,7 +81,7 @@ func (u *Unpack) PostRun() error {
 	return nil
 }
 
-func (u *Unpack) Remove() error {
+func (u *unpacker) Remove() error {
 	if !u.Path.Remove {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (u *Unpack) Remove() error {
 	return os.Remove(u.SFV.Path)
 }
 
-func (u *Unpack) FileCount() (int, int) {
+func (u *unpacker) FileCount() (int, int) {
 	exists := 0
 	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
@@ -103,7 +103,7 @@ func (u *Unpack) FileCount() (int, int) {
 	return exists, len(u.SFV.Checksums)
 }
 
-func (u *Unpack) Verify() error {
+func (u *unpacker) Verify() error {
 	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {

@@ -8,7 +8,7 @@ import (
 	flags "github.com/jessevdk/go-flags"
 
 	"github.com/martinp/gounpack/dispatcher"
-	"github.com/martinp/gounpack/unpack"
+	"github.com/martinp/gounpack/unpacker"
 )
 
 func main() {
