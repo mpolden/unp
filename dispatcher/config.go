@@ -40,9 +40,9 @@ func readConfig(r io.Reader) (Config, error) {
 }
 
 func ReadConfig(name string) (Config, error) {
-	if name == "~/.gounpackrc" {
+	if name == "~/.unpackerrc" {
 		home := os.Getenv("HOME")
-		name = filepath.Join(home, ".gounpackrc")
+		name = filepath.Join(home, ".unpackerrc")
 	}
 	f, err := os.Open(name)
 	if err != nil {

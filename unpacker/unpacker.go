@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/martinp/gounpack/dispatcher"
+	"github.com/martinp/unpacker/dispatcher"
 	"github.com/martinp/sfv"
 	"github.com/pkg/errors"
 )

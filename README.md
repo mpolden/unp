@@ -1,19 +1,19 @@
-# gounpack
+# unpacker
 
-[![Build Status](https://travis-ci.org/martinp/gounpack.svg)](https://travis-ci.org/martinp/gounpack)
+[![Build Status](https://travis-ci.org/martinp/unpacker.svg)](https://travis-ci.org/martinp/unpacker)
 
-gounpack is a small server that monitors directories, verifies SFV files and
+unpacker is a small server that monitors directories, verifies SFV files and
 unpacks archives automatically.
 
 ## Usage
 
 ```
-$ gounpack -h
+$ unpacker -h
 Usage:
-  gounpack [OPTIONS]
+  unpacker [OPTIONS]
 
 Application Options:
-  -f, --config=FILE    Config file (default: ~/.gounpackrc)
+  -f, --config=FILE    Config file (default: ~/.unpackerrc)
   -t, --test           Test and print config
 
 Help Options:
