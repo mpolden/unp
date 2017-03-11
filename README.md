@@ -13,19 +13,18 @@ Usage:
   gounpack [OPTIONS]
 
 Application Options:
-  -b, --buffer-size=COUNT    Number of events to buffer (100)
-  -f, --config=FILE          Config file (~/.gounpackrc)
-  -t, --test                 Test and print config
+  -f, --config=FILE    Config file (default: ~/.gounpackrc)
+  -t, --test           Test and print config
 
 Help Options:
-  -h, --help                 Show this help message
+  -h, --help           Show this help message
 ```
 
 ## Example config
 
 ```json
 {
-  "Async": false,
+  "BufferSize": 100,
   "Paths": [
     {
       "Name": "/home/foo/videos",
@@ -47,9 +46,9 @@ Help Options:
 
 ## Configuration options
 
-`Async` determines whether to do unpacking asynchronously. Set to `false` to
-queue unpack events and process them one at a time, this might be faster as
-unpacking is often I/O bound.
+`BufferSize` sets the maximum number of file system to queue. This should be
+large enough to store events that occur while unpacking files. The default value
+is `100`.
 
 `Paths` is an array of paths to watch.
 
