@@ -7,7 +7,7 @@ import "github.com/rjeczalik/notify"
 var flags = []notify.Event{notify.Create, notify.Write}
 
 func (e *Event) IsDir() bool {
-	fsEvent, ok := e.Sys().(*notify.FSEvent)
+	fsEvent, ok := e.eventInfo.Sys().(*notify.FSEvent)
 	if !ok {
 		return false
 	}
@@ -15,5 +15,5 @@ func (e *Event) IsDir() bool {
 }
 
 func (e *Event) IsCloseWrite() bool {
-	return e.Event() == notify.Write
+	return e.eventInfo.Event() == notify.Write
 }

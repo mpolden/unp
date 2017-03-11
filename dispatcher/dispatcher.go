@@ -24,7 +24,7 @@ type dispatcher struct {
 }
 
 func (d *dispatcher) onDirEvent(e Event) error {
-	return filepath.Walk(e.Path(), func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(e.Name(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -36,22 +36,22 @@ func (d *dispatcher) onDirEvent(e Event) error {
 }
 
 func (d *dispatcher) onFileEvent(e Event) error {
-	p, ok := d.config.findPath(e.Path())
+	p, ok := d.config.findPath(e.Name())
 	if !ok {
-		return fmt.Errorf("no configured path found: %s", e.Path())
+		return fmt.Errorf("no configured path found: %s", e.Name())
 	}
 	if p.SkipHidden && (e.IsHidden() || e.IsParentHidden()) {
-		return fmt.Errorf("hidden parent dir or file: %s", e.Path())
+		return fmt.Errorf("hidden parent dir or file: %s", e.Name())
 	}
 	if !p.validDepth(e.Depth()) {
 		return fmt.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
-			e.Path(), e.Depth(), p.MinDepth, p.MaxDepth)
+			e.Name(), e.Depth(), p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.match(e.Base()); !match {
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("no match found: %s", e.Path())
+		return fmt.Errorf("no match found: %s", e.Name())
 	}
 	return d.onFile(e, p)
 }

@@ -9,27 +9,31 @@ import (
 )
 
 type Event struct {
-	notify.EventInfo
+	eventInfo notify.EventInfo
+}
+
+func (e *Event) Name() string {
+	return e.eventInfo.Path()
 }
 
 func (e *Event) Depth() int {
-	name := filepath.Clean(e.Path())
+	name := filepath.Clean(e.Name())
 	return strings.Count(name, string(os.PathSeparator))
 }
 
 func (e *Event) IsCreate() bool {
-	return e.Event() == notify.Create
+	return e.eventInfo.Event() == notify.Create
 }
 
 func (e *Event) Dir() string {
 	if e.IsDir() {
-		return e.Path()
+		return e.Name()
 	}
-	return filepath.Dir(e.Path())
+	return filepath.Dir(e.Name())
 }
 
 func (e *Event) Base() string {
-	return filepath.Base(e.Path())
+	return filepath.Base(e.Name())
 }
 
 func hidden(name string) bool {
