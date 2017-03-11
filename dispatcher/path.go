@@ -27,7 +27,7 @@ type CmdValues struct {
 	Base string
 }
 
-func (p *Path) Match(name string) (bool, error) {
+func (p *Path) match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
 		if err != nil {
@@ -66,6 +66,6 @@ func (p *Path) NewPostCmd(v CmdValues) (*exec.Cmd, error) {
 	return p.newCmd(p.PostCommand, v)
 }
 
-func (p *Path) ValidDepth(depth int) bool {
+func (p *Path) validDepth(depth int) bool {
 	return depth >= p.MinDepth && depth <= p.MaxDepth
 }

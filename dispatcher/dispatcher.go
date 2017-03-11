@@ -43,11 +43,11 @@ func (d *Dispatcher) processFile(e Event) error {
 	if p.SkipHidden && (e.IsHidden() || e.IsParentHidden()) {
 		return fmt.Errorf("hidden parent dir or file: %s", e.Path())
 	}
-	if !p.ValidDepth(e.Depth()) {
+	if !p.validDepth(e.Depth()) {
 		return fmt.Errorf("incorrect depth: %s depth:%d min:%d max:%d",
 			e.Path(), e.Depth(), p.MinDepth, p.MaxDepth)
 	}
-	if match, err := p.Match(e.Base()); !match {
+	if match, err := p.match(e.Base()); !match {
 		if err != nil {
 			return err
 		}

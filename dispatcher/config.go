@@ -92,7 +92,7 @@ func (c *Config) Validate() error {
 		if !strings.HasPrefix(p.ArchiveExt, ".") {
 			return fmt.Errorf("file extension missing dot prefix: %s", p.ArchiveExt)
 		}
-		if _, err := p.Match("foo.bar"); err != nil {
+		if _, err := p.match("foo.bar"); err != nil {
 			return err
 		}
 		if err := isExecutable(p.UnpackCommand); err != nil {
