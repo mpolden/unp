@@ -8,17 +8,18 @@ import (
 
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
+	"log"
+
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(Event, Path, *logrus.Logger)
+type OnFile func(Event, Path, *log.Logger)
 
 type Dispatcher struct {
 	Config
 	onFile  OnFile
 	watcher chan notify.EventInfo
-	log     *logrus.Logger
+	log     *log.Logger
 	signal  chan os.Signal
 }
 
@@ -30,7 +31,6 @@ func (d *Dispatcher) createDir(e Event) error {
 		if !info.IsDir() {
 			return nil
 		}
-		d.log.WithFields(logrus.Fields{"path": path}).Info("New directory")
 		return nil
 	})
 }
@@ -61,9 +61,9 @@ func (d *Dispatcher) watch() {
 	for _, path := range d.Paths {
 		recursivePath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
-			d.log.Error(err)
+			d.log.Printf("Failed to watch %s: %s", recursivePath, err)
 		} else {
-			d.log.WithFields(logrus.Fields{"path": path.Name}).Info("Watching recursively")
+			d.log.Printf("Watching %s recursively", path.Name)
 		}
 	}
 }
@@ -71,15 +71,15 @@ func (d *Dispatcher) watch() {
 func (d *Dispatcher) reload() {
 	for {
 		s := <-d.signal
-		d.log.Infof("Received %s, reloading configuration", s)
+		d.log.Printf("Received %s, reloading configuration", s)
 		cfg, err := ReadConfig(d.Config.filename)
 		if err == nil {
-			d.log.Info("Removing all watches")
+			d.log.Print("Removing all watches")
 			notify.Stop(d.watcher)
 			d.Config = cfg
 			d.watch()
 		} else {
-			d.log.WithError(err).Errorf("Failed to read config")
+			d.log.Printf("Failed to read config: %s", err)
 		}
 	}
 }
@@ -89,11 +89,11 @@ func (d *Dispatcher) readEvents() {
 		e := Event{ev}
 		if e.IsCreate() && e.IsDir() {
 			if err := d.createDir(e); err != nil {
-				d.log.WithError(err).Info("Skipping event")
+				d.log.Printf("Skipping event: %s", err)
 			}
 		} else if e.IsCloseWrite() {
 			if err := d.processFile(e); err != nil {
-				d.log.WithError(err).Info("Skipping event")
+				d.log.Printf("Skipping event: %s", err)
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func (d *Dispatcher) Serve() {
 	d.readEvents()
 }
 
-func New(cfg Config, handler OnFile, log *logrus.Logger) *Dispatcher {
+func New(cfg Config, handler OnFile, log *log.Logger) *Dispatcher {
 	// Buffer events so that we don't miss any
 	watcher := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)

@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	flags "github.com/jessevdk/go-flags"
 
 	"github.com/martinp/gounpack/dispatcher"
@@ -14,9 +13,8 @@ import (
 
 func main() {
 	var opts struct {
-		Config   string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
-		Test     bool   `short:"t" long:"test" description:"Test and print config"`
-		LogLevel string `short:"L" long:"log-level" description:"Log level to use" default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
+		Config string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.gounpackrc"`
+		Test   bool   `short:"t" long:"test" description:"Test and print config"`
 	}
 
 	_, err := flags.ParseArgs(&opts, os.Args)
@@ -38,12 +36,6 @@ func main() {
 		return
 	}
 
-	log := logrus.New()
-	level, err := logrus.ParseLevel(opts.LogLevel)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Level = level
-
+	log := log.New(os.Stderr, "", log.LstdFlags)
 	dispatcher.New(cfg, unpack.OnFile, log).Serve()
 }

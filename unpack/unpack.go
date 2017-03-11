@@ -3,11 +3,9 @@ package unpack
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"github.com/Sirupsen/logrus"
 
 	"github.com/martinp/gounpack/dispatcher"
 	"github.com/martinp/sfv"
@@ -62,9 +60,9 @@ func (u *Unpack) Run() error {
 	return nil
 }
 
-func (u *Unpack) PostRun() (string, error) {
+func (u *Unpack) PostRun() error {
 	if u.Path.PostCommand == "" {
-		return "", nil
+		return nil
 	}
 	values := dispatcher.CmdValues{
 		Name: u.Archive,
@@ -73,29 +71,26 @@ func (u *Unpack) PostRun() (string, error) {
 	}
 	cmd, err := u.Path.NewPostCmd(values)
 	if err != nil {
-		return "", err
+		return err
 	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("%s: %s", err, stderr.String())
+		return fmt.Errorf("%s: %s", err, stderr.String())
 	}
-	return strings.Join(cmd.Args, " "), nil
+	return nil
 }
 
-func (u *Unpack) Remove() (bool, error) {
+func (u *Unpack) Remove() error {
 	if !u.Path.Remove {
-		return false, nil
+		return nil
 	}
 	for _, c := range u.SFV.Checksums {
 		if err := os.Remove(c.Path); err != nil {
-			return false, err
+			return err
 		}
 	}
-	if err := os.Remove(u.SFV.Path); err != nil {
-		return false, err
-	}
-	return true, nil
+	return os.Remove(u.SFV.Path)
 }
 
 func (u *Unpack) FileCount() (int, int) {
@@ -121,43 +116,37 @@ func (u *Unpack) Verify() error {
 	return nil
 }
 
-func OnFile(e dispatcher.Event, p dispatcher.Path, log *logrus.Logger) {
+func OnFile(e dispatcher.Event, p dispatcher.Path, log *log.Logger) {
 	u, err := New(e, p)
 	if err != nil {
-		log.Error(err)
+		log.Printf("Failed to create unpacker: %s", err)
 		return
 	}
 
 	if exists, total := u.FileCount(); exists != total {
-		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Infof("%d/%d files", exists, total)
+		log.Printf("%s: %d/%d files", u.Event.Dir(), exists, total)
 		return
 	}
 
 	// Verify
 	if err := u.Verify(); err != nil {
-		log.WithError(err).Warn("Verification failed")
+		log.Printf("Verification failed: %s", err)
 		return
 	}
-	log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Verified successfully")
 
 	// Unpack
 	if err := u.Run(); err != nil {
-		log.WithError(err).Error("Unpacking failed")
+		log.Printf("Unpacking failed: %s", err)
 		return
 	}
-	log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Unpacked successfully")
 
 	// Clean up
-	if ok, err := u.Remove(); err != nil {
-		log.WithError(err).Error("Failed to delete files")
-	} else if ok {
-		log.WithFields(logrus.Fields{"path": u.Event.Dir()}).Info("Cleaned up")
+	if err := u.Remove(); err != nil {
+		log.Printf("Failed to delete files: %s", err)
 	}
 
 	// Run post-command
-	if cmd, err := u.PostRun(); err != nil {
-		log.WithFields(logrus.Fields{"command": cmd}).WithError(err).Warn("Failed to run post-command")
-	} else if cmd != "" {
-		log.WithFields(logrus.Fields{"command": cmd}).Info("Executed post-command")
+	if err := u.PostRun(); err != nil {
+		log.Printf("Failed to run post-command: %s", err)
 	}
 }
