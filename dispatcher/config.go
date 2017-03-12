@@ -67,6 +67,13 @@ func readConfig(r io.Reader) (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
 	}
+	// Set a default buffer size
+	if cfg.BufferSize <= 0 {
+		cfg.BufferSize = 100
+	}
+	if err := cfg.validate(); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 
@@ -84,13 +91,7 @@ func ReadConfig(name string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	if err := cfg.validate(); err != nil {
-		return Config{}, err
-	}
-	// Set a default buffer size
-	if cfg.BufferSize <= 0 {
-		cfg.BufferSize = 100
-	}
+
 	cfg.filename = name
 	return cfg, nil
 }
@@ -136,9 +137,9 @@ func (c *Config) validate() error {
 	return nil
 }
 
-func (c *Config) findPath(name string) (Path, bool) {
+func (c *Config) findPath(prefix string) (Path, bool) {
 	for _, p := range c.Paths {
-		if strings.HasPrefix(name, p.Name) {
+		if strings.HasPrefix(prefix, p.Name) {
 			return p, true
 		}
 	}

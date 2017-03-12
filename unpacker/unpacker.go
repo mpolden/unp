@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/martinp/unpacker/dispatcher"
 	"github.com/martinp/sfv"
+	"github.com/martinp/unpacker/dispatcher"
 	"github.com/pkg/errors"
 )
 

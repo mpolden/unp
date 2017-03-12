@@ -1,27 +1,43 @@
 package dispatcher
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
 
+func mustTempDir() string {
+	name, err := ioutil.TempDir("", "dispatcher")
+	if err != nil {
+		panic(err)
+	}
+	return name
+}
+
 func TestReadConfig(t *testing.T) {
-	jsonConfig := `
+	path1 := mustTempDir()
+	defer os.RemoveAll(path1)
+	path2 := mustTempDir()
+	defer os.RemoveAll(path2)
+	jsonConfig := fmt.Sprintf(`
 {
   "Default": {
-    "MaxDepth": 3
+    "MaxDepth": 3,
+    "ArchiveExt": ".foo"
   },
   "Paths": [
     {
-      "Name": "/tmp/foo"
+      "Name": "%s"
     },
     {
-      "Name": "/tmp/bar",
+      "Name": "%s",
       "MaxDepth": 4
     }
   ]
 }
-`
+`, path1, path2)
 	cfg, err := readConfig(strings.NewReader(jsonConfig))
 	if err != nil {
 		t.Fatal(err)
