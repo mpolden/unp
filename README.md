@@ -1,6 +1,6 @@
 # unpacker
 
-[![Build Status](https://travis-ci.org/martinp/unpacker.svg)](https://travis-ci.org/martinp/unpacker)
+[![Build Status](https://travis-ci.org/mpolden/unpacker.svg)](https://travis-ci.org/mpolden/unpacker)
 
 unpacker is a small server that monitors directories, verifies SFV files and
 unpacks archives automatically.
