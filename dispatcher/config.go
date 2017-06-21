@@ -21,15 +21,14 @@ type Config struct {
 }
 
 type Path struct {
-	Name          string
-	MaxDepth      int
-	MinDepth      int
-	SkipHidden    bool
-	Patterns      []string
-	Remove        bool
-	ArchiveExt    string
-	UnpackCommand string
-	PostCommand   string
+	Name        string
+	MaxDepth    int
+	MinDepth    int
+	SkipHidden  bool
+	Patterns    []string
+	Remove      bool
+	ArchiveExt  string
+	PostCommand string
 }
 
 func (p *Path) match(name string) (bool, error) {
@@ -125,9 +124,6 @@ func (c *Config) validate() error {
 			return fmt.Errorf("file extension missing dot prefix: %s", p.ArchiveExt)
 		}
 		if _, err := p.match("foo.bar"); err != nil {
-			return err
-		}
-		if err := isExecutable(p.UnpackCommand); err != nil {
 			return err
 		}
 		if err := isExecutable(p.PostCommand); err != nil {

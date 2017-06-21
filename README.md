@@ -37,7 +37,6 @@ Help Options:
       ],
       "Remove": false,
       "ArchiveExt": ".rar",
-      "UnpackCommand": "dtrx --noninteractive --recursive --flat {{.Name}}",
       "PostCommand": "mv {{.Dir}} /tmp/"
     }
   ]
@@ -54,12 +53,11 @@ is `100`.
 
 `Name` is the path that should be watched.
 
-`MinDepth` sets the minimum depth allowed to trigger `UnpackCommand`. A
-`MinDepth` of `4` would allow archive files in `/home/foo/videos/bar` to trigger
-an event.
+`MinDepth` sets the minimum depth allowed to trigger unpacking. A `MinDepth` of
+`4` would allow archive files in `/home/foo/videos/bar` to trigger an event.
 
-`MaxDepth` sets the maximum depth allowed to trigger `UnpackCommand`. A `MaxDepth`
-of `5` would allow archives files in `/home/foo/videos/bar/baz` to trigger an
+`MaxDepth` sets the maximum depth allowed to trigger unpacking. A `MaxDepth` of
+`5` would allow archives files in `/home/foo/videos/bar/baz` to trigger an
 event.
 
 `SkipHidden` determines whether events for hidden files (files prefix with `.`)
@@ -68,19 +66,16 @@ should be ignored.
 `Patterns` sets the wildcard patterns that a file needs to match to be able to
 trigger an event.
 
-`Remove` determines whether archive files should be deleted after
-`UnpackCommand` has run.
+`Remove` determines whether archive files should be deleted after unpacking.
 
 `ArchiveExt` sets the archive extension that we expect to unpack.
 
-`UnpackCommand` is the command used for unpacking files.
-
-`PostCommand` is an optional command to be run after `UnpackCommand`.
+`PostCommand` is an optional command to be run after unpacking completes.
 
 ## Command templates
 
-The following template variables are available for use in the `UnpackCommand`
-and `PostCommand` options:
+The following template variables are available for use in the `PostCommand`
+option:
 
 Variable | Description                                    | Example
 -------- | ---------------------------------------------- | -------
@@ -92,5 +87,5 @@ The template is compiled using the
 [text/template](http://golang.org/pkg/text/template/) package. Variables can be
 used like this: `{{.Name}}`
 
-The working directory of `UnpackCommand` and `PostCommand` will be set to the
-directory where the archive is located, equal to `{{.Dir}}`.
+The working directory of `PostCommand` will be set to the directory where the
+archive is located, equal to `{{.Dir}}`.
