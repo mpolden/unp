@@ -33,16 +33,23 @@ func TestUnpacking(t *testing.T) {
 	}
 	testdata := filepath.Join(wd, "testdata")
 	path := dispatcher.Path{ArchiveExt: ".rar"}
-	unpackedFile := filepath.Join(testdata, "test")
+	f1 := filepath.Join(testdata, "test1")
+	f2 := filepath.Join(testdata, "test2")
 	u, err := New(testdata, path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(unpackedFile)
 	if err := u.Run(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(unpackedFile); os.IsNotExist(err) {
+	defer func() {
+		os.Remove(f1)
+		os.Remove(f2)
+	}()
+	if _, err := os.Stat(f1); os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(f2); os.IsNotExist(err) {
 		t.Fatal(err)
 	}
 }

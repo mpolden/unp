@@ -73,7 +73,9 @@ func (u *unpacker) unpack() error {
 		if err1 := f.Close(); err1 != nil {
 			err = err1
 		}
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
