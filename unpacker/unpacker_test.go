@@ -9,20 +9,17 @@ import (
 	"github.com/mpolden/unpacker/dispatcher"
 )
 
-func TestFindArchive(t *testing.T) {
+func TestFindRAR(t *testing.T) {
 	sfv := &sfv.SFV{Checksums: []sfv.Checksum{
 		sfv.Checksum{Path: "foo.r00"},
 		sfv.Checksum{Path: "foo.rar"},
 	}}
-	archive, err := findArchive(sfv, ".rar")
+	archive, err := findRAR(sfv)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if expected := "foo.rar"; archive != expected {
-		t.Errorf("Expected %q, got %q", expected, archive)
-	}
-	if _, err := findArchive(sfv, ".bar"); err == nil {
-		t.Error("Expected error")
+	if want := "foo.rar"; archive != want {
+		t.Errorf("want %q, got %q", want, archive)
 	}
 }
 
@@ -32,10 +29,9 @@ func TestUnpacking(t *testing.T) {
 		t.Fatal(err)
 	}
 	testdata := filepath.Join(wd, "testdata")
-	path := dispatcher.Path{ArchiveExt: ".rar"}
 	f1 := filepath.Join(testdata, "test1")
 	f2 := filepath.Join(testdata, "test2")
-	u, err := New(testdata, path)
+	u, err := New(testdata, dispatcher.Path{})
 	if err != nil {
 		t.Fatal(err)
 	}

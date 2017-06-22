@@ -13,10 +13,10 @@ import (
 )
 
 type unpacker struct {
-	sfv         *sfv.SFV
-	dir         string
-	path        dispatcher.Path
-	archivePath string
+	SFV  *sfv.SFV
+	Path dispatcher.Path
+	Dir  string
+	Name string
 }
 
 func New(dir string, p dispatcher.Path) (*unpacker, error) {
@@ -24,31 +24,31 @@ func New(dir string, p dispatcher.Path) (*unpacker, error) {
 	if err != nil {
 		return nil, err
 	}
-	archive, err := findArchive(sfv, p.ArchiveExt)
+	rar, err := findRAR(sfv)
 	if err != nil {
 		return nil, err
 	}
 	return &unpacker{
-		sfv:         sfv,
-		dir:         dir,
-		path:        p,
-		archivePath: archive,
+		SFV:  sfv,
+		Path: p,
+		Dir:  dir,
+		Name: rar,
 	}, nil
 }
 
-func findArchive(s *sfv.SFV, ext string) (string, error) {
+func findRAR(s *sfv.SFV) (string, error) {
 	for _, c := range s.Checksums {
-		if filepath.Ext(c.Path) == ext {
+		if filepath.Ext(c.Path) == ".rar" {
 			return c.Path, nil
 		}
 	}
-	return "", errors.Errorf("no archive file found in %s", s.Path)
+	return "", errors.Errorf("no rar file found in %s", s.Path)
 }
 
 func (u *unpacker) unpack() error {
-	r, err := rardecode.OpenReader(u.archivePath, "")
+	r, err := rardecode.OpenReader(u.Name, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to unpack: %s", u.archivePath)
+		return errors.Wrapf(err, "failed to unpack: %s", u.Name)
 	}
 	for {
 		header, err := r.Next()
@@ -59,9 +59,9 @@ func (u *unpacker) unpack() error {
 			return err
 		}
 		if header.IsDir {
-			return errors.Errorf("unexpected directory in %s: %s", u.archivePath, header.Name)
+			return errors.Errorf("unexpected directory in %s: %s", u.Name, header.Name)
 		}
-		name := filepath.Join(u.dir, header.Name)
+		name := filepath.Join(u.Dir, header.Name)
 		f, err := os.Create(name)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create file: %s", name)
@@ -81,15 +81,15 @@ func (u *unpacker) unpack() error {
 }
 
 func (u *unpacker) postProcess() error {
-	if u.path.PostCommand == "" {
+	if u.Path.PostCommand == "" {
 		return nil
 	}
 	values := cmdValues{
-		Name: u.archivePath,
-		Base: filepath.Base(u.dir),
-		Dir:  u.dir,
+		Name: u.Name,
+		Base: filepath.Base(u.Dir),
+		Dir:  u.Dir,
 	}
-	cmd, err := newCmd(u.path.PostCommand, values)
+	cmd, err := newCmd(u.Path.PostCommand, values)
 	if err != nil {
 		return err
 	}
@@ -102,35 +102,35 @@ func (u *unpacker) postProcess() error {
 }
 
 func (u *unpacker) remove() error {
-	if !u.path.Remove {
+	if !u.Path.Remove {
 		return nil
 	}
-	for _, c := range u.sfv.Checksums {
+	for _, c := range u.SFV.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	return os.Remove(u.sfv.Path)
+	return os.Remove(u.SFV.Path)
 }
 
 func (u *unpacker) fileCount() (int, int) {
 	exists := 0
-	for _, c := range u.sfv.Checksums {
+	for _, c := range u.SFV.Checksums {
 		if c.IsExist() {
 			exists++
 		}
 	}
-	return exists, len(u.sfv.Checksums)
+	return exists, len(u.SFV.Checksums)
 }
 
 func (u *unpacker) verify() error {
-	for _, c := range u.sfv.Checksums {
+	for _, c := range u.SFV.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return errors.Errorf("%s: failed checksum: %s", u.sfv.Path, c.Filename)
+			return errors.Errorf("%s: failed checksum: %s", u.SFV.Path, c.Filename)
 		}
 	}
 	return nil
@@ -138,16 +138,16 @@ func (u *unpacker) verify() error {
 
 func (u *unpacker) Run() error {
 	if exists, total := u.fileCount(); exists != total {
-		return errors.Errorf("%s is incomplete: %d/%d files", u.dir, exists, total)
+		return errors.Errorf("%s is incomplete: %d/%d files", u.Dir, exists, total)
 	}
 	if err := u.verify(); err != nil {
-		return errors.Wrapf(err, "verification of %s failed", u.dir)
+		return errors.Wrapf(err, "verification of %s failed", u.Dir)
 	}
 	if err := u.unpack(); err != nil {
-		return errors.Wrapf(err, "unpacking %s failed", u.dir)
+		return errors.Wrapf(err, "unpacking %s failed", u.Dir)
 	}
 	if err := u.remove(); err != nil {
-		return errors.Wrapf(err, "cleaning up %s failed", u.dir)
+		return errors.Wrapf(err, "cleaning up %s failed", u.Dir)
 	}
 	if err := u.postProcess(); err != nil {
 		return errors.Wrap(err, "running post-process command failed")

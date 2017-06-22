@@ -2,7 +2,6 @@ package dispatcher
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,7 +26,6 @@ type Path struct {
 	SkipHidden  bool
 	Patterns    []string
 	Remove      bool
-	ArchiveExt  string
 	PostCommand string
 }
 
@@ -115,13 +113,10 @@ func (c *Config) validate() error {
 			return err
 		}
 		if !fi.IsDir() {
-			return fmt.Errorf("not a directory: %s", p.Name)
+			return errors.Errorf("not a directory: %s", p.Name)
 		}
 		if p.MinDepth > p.MaxDepth {
-			return fmt.Errorf("min depth must be <= max depth")
-		}
-		if !strings.HasPrefix(p.ArchiveExt, ".") {
-			return fmt.Errorf("file extension missing dot prefix: %s", p.ArchiveExt)
+			return errors.New("min depth must be <= max depth")
 		}
 		if _, err := p.match("foo.bar"); err != nil {
 			return err

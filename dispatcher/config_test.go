@@ -24,8 +24,7 @@ func TestReadConfig(t *testing.T) {
 	jsonConfig := fmt.Sprintf(`
 {
   "Default": {
-    "MaxDepth": 3,
-    "ArchiveExt": ".foo"
+    "MaxDepth": 3
   },
   "Paths": [
     {

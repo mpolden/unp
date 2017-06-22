@@ -36,7 +36,6 @@ Help Options:
         "*.sfv"
       ],
       "Remove": false,
-      "ArchiveExt": ".rar",
       "PostCommand": "mv {{.Dir}} /tmp/"
     }
   ]
@@ -67,8 +66,6 @@ should be ignored.
 trigger an event.
 
 `Remove` determines whether archive files should be deleted after unpacking.
-
-`ArchiveExt` sets the archive extension that we expect to unpack.
 
 `PostCommand` is an optional command to be run after unpacking completes.
 
