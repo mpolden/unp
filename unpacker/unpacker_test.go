@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mpolden/sfv"
-	"github.com/mpolden/unpacker/dispatcher"
 )
 
 func TestFindRAR(t *testing.T) {
@@ -31,11 +30,11 @@ func TestUnpacking(t *testing.T) {
 	testdata := filepath.Join(wd, "testdata")
 	f1 := filepath.Join(testdata, "test1")
 	f2 := filepath.Join(testdata, "test2")
-	u, err := New(testdata, dispatcher.Path{})
+	u, err := New(testdata)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := u.Run(); err != nil {
+	if err := u.Run(false); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {

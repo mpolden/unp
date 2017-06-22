@@ -14,12 +14,11 @@ import (
 
 type unpacker struct {
 	SFV  *sfv.SFV
-	Path dispatcher.Path
 	Dir  string
 	Name string
 }
 
-func New(dir string, p dispatcher.Path) (*unpacker, error) {
+func New(dir string) (*unpacker, error) {
 	sfv, err := sfv.Find(dir)
 	if err != nil {
 		return nil, err
@@ -30,7 +29,6 @@ func New(dir string, p dispatcher.Path) (*unpacker, error) {
 	}
 	return &unpacker{
 		SFV:  sfv,
-		Path: p,
 		Dir:  dir,
 		Name: rar,
 	}, nil
@@ -48,7 +46,7 @@ func findRAR(s *sfv.SFV) (string, error) {
 func (u *unpacker) unpack() error {
 	r, err := rardecode.OpenReader(u.Name, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to unpack: %s", u.Name)
+		return errors.Wrapf(err, "failed to open %s", u.Name)
 	}
 	for {
 		header, err := r.Next()
@@ -80,31 +78,7 @@ func (u *unpacker) unpack() error {
 	return nil
 }
 
-func (u *unpacker) postProcess() error {
-	if u.Path.PostCommand == "" {
-		return nil
-	}
-	values := cmdValues{
-		Name: u.Name,
-		Base: filepath.Base(u.Dir),
-		Dir:  u.Dir,
-	}
-	cmd, err := newCmd(u.Path.PostCommand, values)
-	if err != nil {
-		return err
-	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return errors.Errorf("%s: %s", err, stderr.String())
-	}
-	return nil
-}
-
 func (u *unpacker) remove() error {
-	if !u.Path.Remove {
-		return nil
-	}
 	for _, c := range u.SFV.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
@@ -136,7 +110,7 @@ func (u *unpacker) verify() error {
 	return nil
 }
 
-func (u *unpacker) Run() error {
+func (u *unpacker) Run(removeRARs bool) error {
 	if exists, total := u.fileCount(); exists != total {
 		return errors.Errorf("%s is incomplete: %d/%d files", u.Dir, exists, total)
 	}
@@ -146,19 +120,45 @@ func (u *unpacker) Run() error {
 	if err := u.unpack(); err != nil {
 		return errors.Wrapf(err, "unpacking %s failed", u.Dir)
 	}
-	if err := u.remove(); err != nil {
-		return errors.Wrapf(err, "cleaning up %s failed", u.Dir)
+	if removeRARs {
+		if err := u.remove(); err != nil {
+			return errors.Wrapf(err, "cleaning up %s failed", u.Dir)
+		}
 	}
-	if err := u.postProcess(); err != nil {
-		return errors.Wrap(err, "running post-process command failed")
+	return nil
+}
+
+func postProcess(u *unpacker, p dispatcher.Path) error {
+	if p.PostCommand == "" {
+		return nil
+	}
+	values := cmdValues{
+		Name: u.Name,
+		Base: filepath.Base(u.Dir),
+		Dir:  u.Dir,
+	}
+	cmd, err := newCmd(p.PostCommand, values)
+	if err != nil {
+		return err
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return errors.Errorf("%s: %s", err, stderr.String())
 	}
 	return nil
 }
 
 func OnFile(e dispatcher.Event, p dispatcher.Path) error {
-	u, err := New(e.Dir(), p)
+	u, err := New(e.Dir())
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")
 	}
-	return u.Run()
+	if err := u.Run(p.Remove); err != nil {
+		return err
+	}
+	if err := postProcess(u, p); err != nil {
+		return errors.Wrap(err, "post-process command failed")
+	}
+	return nil
 }
