@@ -2,7 +2,9 @@ package unpacker
 
 import (
 	"bytes"
-	"fmt"
+
+	"github.com/pkg/errors"
+
 	"os/exec"
 	"strings"
 	"text/template"
@@ -25,7 +27,7 @@ func newCmd(tmpl string, v cmdValues) (*exec.Cmd, error) {
 	}
 	argv := strings.Split(b.String(), " ")
 	if len(argv) == 0 {
-		return nil, fmt.Errorf("template compiled to empty command")
+		return nil, errors.New("template compiled to empty command")
 	}
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = v.Dir

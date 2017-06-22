@@ -1,7 +1,6 @@
 package dispatcher
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +9,7 @@ import (
 
 	"log"
 
+	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
 )
 
@@ -26,20 +26,20 @@ type dispatcher struct {
 func (d *dispatcher) dispatch(e Event) error {
 	p, ok := d.config.findPath(e.Name())
 	if !ok {
-		return fmt.Errorf("no configured path found: %s", e.Name())
+		return errors.Errorf("no configured path found: %s", e.Name())
 	}
 	if p.SkipHidden && (e.IsHidden() || e.IsParentHidden()) {
-		return fmt.Errorf("hidden parent dir or file: %s", e.Name())
+		return errors.Errorf("hidden parent dir or file: %s", e.Name())
 	}
 	if !p.validDepth(e.Depth()) {
-		return fmt.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
+		return errors.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
 			e.Name(), e.Depth(), p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.match(e.Base()); !match {
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("no match found: %s", e.Name())
+		return errors.Errorf("no match found: %s", e.Name())
 	}
 	return d.onFile(e, p)
 }
