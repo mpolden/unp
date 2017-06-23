@@ -34,19 +34,23 @@ func New(dir string) (*unpacker, error) {
 	}, nil
 }
 
+func isRAR(name string) bool {
+	return filepath.Ext(name) == ".rar"
+}
+
 func findRAR(s *sfv.SFV) (string, error) {
 	for _, c := range s.Checksums {
-		if filepath.Ext(c.Path) == ".rar" {
+		if isRAR(c.Path) {
 			return c.Path, nil
 		}
 	}
 	return "", errors.Errorf("no rar file found in %s", s.Path)
 }
 
-func (u *unpacker) unpack() error {
-	r, err := rardecode.OpenReader(u.Name, "")
+func (u *unpacker) unpack(name string) error {
+	r, err := rardecode.OpenReader(name, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", u.Name)
+		return errors.Wrapf(err, "failed to open %s", name)
 	}
 	for {
 		header, err := r.Next()
@@ -57,7 +61,7 @@ func (u *unpacker) unpack() error {
 			return err
 		}
 		if header.IsDir {
-			return errors.Errorf("unexpected directory in %s: %s", u.Name, header.Name)
+			return errors.Errorf("unexpected directory in %s: %s", name, header.Name)
 		}
 		name := filepath.Join(u.Dir, header.Name)
 		f, err := os.Create(name)
@@ -73,6 +77,12 @@ func (u *unpacker) unpack() error {
 		}
 		if err != nil {
 			return err
+		}
+		// Unpack recursively if unpacked file is also a RAR
+		if isRAR(name) {
+			if err := u.unpack(name); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -117,7 +127,7 @@ func (u *unpacker) Run(removeRARs bool) error {
 	if err := u.verify(); err != nil {
 		return errors.Wrapf(err, "verification of %s failed", u.Dir)
 	}
-	if err := u.unpack(); err != nil {
+	if err := u.unpack(u.Name); err != nil {
 		return errors.Wrapf(err, "unpacking %s failed", u.Dir)
 	}
 	if removeRARs {
