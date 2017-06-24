@@ -60,10 +60,17 @@ func (u *unpacker) unpack(name string) error {
 		if err != nil {
 			return err
 		}
-		if header.IsDir {
-			return errors.Errorf("unexpected directory in %s: %s", name, header.Name)
-		}
 		name := filepath.Join(u.Dir, header.Name)
+		if header.IsDir {
+			if err := os.MkdirAll(name, 0755); err != nil {
+				return err
+			}
+			continue
+		}
+		// Ensure parent directory is created
+		if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
+			return err
+		}
 		f, err := os.Create(name)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create file: %s", name)

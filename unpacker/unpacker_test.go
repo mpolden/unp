@@ -28,7 +28,13 @@ func TestUnpacking(t *testing.T) {
 		t.Fatal(err)
 	}
 	testdata := filepath.Join(wd, "testdata")
-	files := []string{"test1", "test2", "test3", "nested.rar"}
+	files := []string{
+		"test1",
+		"test2",
+		"test3",
+		filepath.Join("test/test4"),
+		"nested.rar",
+	}
 	u, err := New(testdata)
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +46,7 @@ func TestUnpacking(t *testing.T) {
 		for _, f := range files {
 			os.Remove(filepath.Join(testdata, f))
 		}
+		os.Remove(filepath.Join(testdata, "test"))
 	}()
 	for _, f := range files {
 		if _, err := os.Stat(filepath.Join(testdata, f)); os.IsNotExist(err) {
