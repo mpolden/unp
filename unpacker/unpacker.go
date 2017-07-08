@@ -145,8 +145,8 @@ func (u *unpacker) Run(removeRARs bool) error {
 	return nil
 }
 
-func postProcess(u *unpacker, p dispatcher.Path) error {
-	if p.PostCommand == "" {
+func postProcess(u *unpacker, command string) error {
+	if command == "" {
 		return nil
 	}
 	values := cmdValues{
@@ -154,7 +154,7 @@ func postProcess(u *unpacker, p dispatcher.Path) error {
 		Base: filepath.Base(u.Dir),
 		Dir:  u.Dir,
 	}
-	cmd, err := newCmd(p.PostCommand, values)
+	cmd, err := newCmd(command, values)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func OnFile(e dispatcher.Event, p dispatcher.Path) error {
 	if err := u.Run(p.Remove); err != nil {
 		return err
 	}
-	if err := postProcess(u, p); err != nil {
+	if err := postProcess(u, p.PostCommand); err != nil {
 		return errors.Wrap(err, "post-process command failed")
 	}
 	return nil
