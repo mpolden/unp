@@ -167,9 +167,6 @@ func postProcess(u *unpacker, command string) error {
 }
 
 func OnFile(e dispatcher.Event, p dispatcher.Path) error {
-	if _, err := os.Stat(e.Name()); os.IsNotExist(err) {
-		return nil // File has been removed, nothing to do
-	}
 	u, err := New(e.Dir())
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")
