@@ -92,11 +92,11 @@ func (w *watcher) readSignal() {
 			w.mu.Lock()
 			switch s {
 			case syscall.SIGUSR1:
-				w.log.Printf("Received %s, reloading configuration", s)
-				w.reload()
-			case syscall.SIGUSR2:
 				w.log.Printf("Received %s, rescanning watched directories", s)
 				w.rescan()
+			case syscall.SIGUSR2:
+				w.log.Printf("Received %s, reloading configuration", s)
+				w.reload()
 			case syscall.SIGTERM, syscall.SIGINT:
 				w.log.Printf("Received %s, shutting down", s)
 				w.Stop()

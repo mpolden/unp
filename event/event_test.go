@@ -85,8 +85,8 @@ func TestRescanning(t *testing.T) {
 	w.start()
 	w.watch()
 
-	// USR2 triggers rescan
-	w.signal <- syscall.SIGUSR2
+	// USR1 triggers rescan
+	w.signal <- syscall.SIGUSR1
 
 	// Sleep until file is caught
 	ts := time.Now()
