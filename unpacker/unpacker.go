@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/mpolden/sfv"
-	"github.com/mpolden/unpacker/dispatcher"
+	"github.com/mpolden/unpacker/event"
 	"github.com/nwaples/rardecode"
 	"github.com/pkg/errors"
 )
@@ -166,7 +166,7 @@ func postProcess(u *unpacker, command string) error {
 	return nil
 }
 
-func OnFile(name string, p dispatcher.Path) error {
+func OnFile(name string, p event.Path) error {
 	u, err := New(name)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")

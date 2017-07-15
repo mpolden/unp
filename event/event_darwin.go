@@ -1,6 +1,6 @@
 // +build darwin
 
-package dispatcher
+package event
 
 import "github.com/rjeczalik/notify"
 

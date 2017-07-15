@@ -7,7 +7,7 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 
-	"github.com/mpolden/unpacker/dispatcher"
+	"github.com/mpolden/unpacker/event"
 	"github.com/mpolden/unpacker/unpacker"
 )
 
@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg, err := dispatcher.ReadConfig(opts.Config)
+	cfg, err := event.ReadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,5 +37,6 @@ func main() {
 	}
 
 	log := log.New(os.Stderr, "", log.LstdFlags)
-	dispatcher.New(cfg, unpacker.OnFile, log).Serve()
+	w := event.NewWatcher(cfg, unpacker.OnFile, log)
+	w.Serve()
 }
