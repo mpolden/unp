@@ -9,11 +9,12 @@ import (
 
 	"log"
 
+	"github.com/mpolden/unpacker/pathutil"
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(Event, Path) error
+type OnFile func(string, Path) error
 
 type dispatcher struct {
 	config Config
@@ -23,25 +24,26 @@ type dispatcher struct {
 	log    *log.Logger
 }
 
-func (d *dispatcher) dispatch(e Event) error {
-	p, ok := d.config.findPath(e.Name())
+func (d *dispatcher) dispatch(name string) error {
+	p, ok := d.config.findPath(name)
 	if !ok {
-		return errors.Errorf("no configured path found: %s", e.Name())
+		return errors.Errorf("no configured path found: %s", name)
 	}
-	if p.SkipHidden && (e.IsHidden() || e.IsParentHidden()) {
-		return errors.Errorf("hidden parent dir or file: %s", e.Name())
+	if p.SkipHidden && (pathutil.IsHidden(name) || pathutil.IsParentHidden(name)) {
+		return errors.Errorf("hidden parent dir or file: %s", name)
 	}
-	if !p.validDepth(e.Depth()) {
+	depth := pathutil.Depth(name)
+	if !p.validDepth(depth) {
 		return errors.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
-			e.Name(), e.Depth(), p.MinDepth, p.MaxDepth)
+			name, depth, p.MinDepth, p.MaxDepth)
 	}
-	if match, err := p.match(e.Base()); !match {
+	if match, err := p.match(filepath.Base(name)); !match {
 		if err != nil {
 			return err
 		}
-		return errors.Errorf("no match found: %s", e.Name())
+		return errors.Errorf("no match found: %s", name)
 	}
-	return d.onFile(e, p)
+	return d.onFile(name, p)
 }
 
 func (d *dispatcher) watch() {
@@ -74,7 +76,7 @@ func (d *dispatcher) readEvents() {
 	for ev := range d.events {
 		e := Event{ev}
 		if e.IsCloseWrite() {
-			if err := d.dispatch(e); err != nil {
+			if err := d.dispatch(e.Name()); err != nil {
 				d.log.Printf("Skipping event: %s", err)
 			}
 		}
