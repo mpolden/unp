@@ -78,7 +78,6 @@ func (w *watcher) rescan() {
 			if info == nil || !info.Mode().IsRegular() {
 				return nil
 			}
-			w.log.Printf("handling %s\n", path)
 			return w.handle(path)
 		})
 	}
