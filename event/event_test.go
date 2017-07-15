@@ -3,6 +3,7 @@ package event
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -41,6 +42,7 @@ func TestWatching(t *testing.T) {
 	w.start()
 	w.watch()
 	defer w.Stop()
+	defer os.RemoveAll(dir)
 
 	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
