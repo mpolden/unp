@@ -167,7 +167,7 @@ func postProcess(u *unpacker, command string) error {
 }
 
 func OnFile(name string, p event.Path) error {
-	u, err := New(name)
+	u, err := New(filepath.Dir(name))
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")
 	}
