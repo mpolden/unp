@@ -38,5 +38,5 @@ func main() {
 
 	log := log.New(os.Stderr, "", log.LstdFlags)
 	w := event.NewWatcher(cfg, unpacker.OnFile, log)
-	w.Serve()
+	w.Start()
 }

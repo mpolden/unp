@@ -18,13 +18,14 @@ import (
 type OnFile func(string, Path) error
 
 type watcher struct {
-	config    Config
-	onFile    OnFile
-	events    chan notify.EventInfo
-	rescanSig chan os.Signal
-	reloadSig chan os.Signal
-	log       *log.Logger
-	mu        sync.Mutex
+	config Config
+	onFile OnFile
+	events chan notify.EventInfo
+	signal chan os.Signal
+	done   chan bool
+	log    *log.Logger
+	mu     sync.Mutex
+	wg     sync.WaitGroup
 }
 
 func (w *watcher) handle(name string) error {
@@ -46,7 +47,6 @@ func (w *watcher) handle(name string) error {
 		}
 		return errors.Errorf("no match found: %s", name)
 	}
-	w.log.Printf("triggering for %s\n", name)
 	return w.onFile(name, p)
 }
 
@@ -62,72 +62,104 @@ func (w *watcher) watch() {
 }
 
 func (w *watcher) reload() {
-	for {
-		s := <-w.reloadSig
-		w.mu.Lock()
-		w.log.Printf("Received %s, reloading configuration", s)
-		cfg, err := ReadConfig(w.config.filename)
-		if err == nil {
-			notify.Stop(w.events)
-			w.config = cfg
-			w.watch()
-		} else {
-			w.log.Printf("Failed to read config: %s", err)
-		}
-		w.mu.Unlock()
+	cfg, err := ReadConfig(w.config.filename)
+	if err == nil {
+		notify.Stop(w.events)
+		w.config = cfg
+		w.watch()
+	} else {
+		w.log.Printf("Failed to read config: %s", err)
 	}
 }
 
 func (w *watcher) rescan() {
-	for {
-		s := <-w.rescanSig
-		w.mu.Lock()
-		w.log.Printf("Received %s, rescanning watched directories", s)
-		for _, p := range w.config.Paths {
-			filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
-				if info == nil || !info.Mode().IsRegular() {
-					return nil
-				}
-				w.log.Printf("handling %s\n", path)
-				return w.handle(path)
-			})
-		}
-		w.mu.Unlock()
+	for _, p := range w.config.Paths {
+		filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
+			if info == nil || !info.Mode().IsRegular() {
+				return nil
+			}
+			w.log.Printf("handling %s\n", path)
+			return w.handle(path)
+		})
 	}
 }
 
-func (w *watcher) readEvents() {
-	for ev := range w.events {
-		if isCloseWrite(ev.Event()) {
+func (w *watcher) readSignal() {
+	for {
+		select {
+		case <-w.done:
+			return
+		case s := <-w.signal:
 			w.mu.Lock()
-			if err := w.handle(ev.Path()); err != nil {
-				w.log.Printf("Skipping event: %s", err)
+			switch s {
+			case syscall.SIGUSR1:
+				w.log.Printf("Received %s, reloading configuration", s)
+				w.reload()
+			case syscall.SIGUSR2:
+				w.log.Printf("Received %s, rescanning watched directories", s)
+				w.rescan()
+			case syscall.SIGTERM, syscall.SIGINT:
+				w.log.Printf("Received %s, shutting down", s)
+				w.Stop()
 			}
 			w.mu.Unlock()
 		}
 	}
 }
 
-func (w *watcher) Serve() {
-	go w.reload()
-	go w.rescan()
+func (w *watcher) readEvent() {
+	for {
+		select {
+		case <-w.done:
+			return
+		case ev := <-w.events:
+			if isCloseWrite(ev.Event()) {
+				w.mu.Lock()
+				if err := w.handle(ev.Path()); err != nil {
+					w.log.Printf("Skipping event: %s", err)
+				}
+				w.mu.Unlock()
+			}
+		}
+	}
+}
+
+func (w *watcher) start() {
+	w.wg.Add(2)
+	go func() {
+		defer w.wg.Done()
+		w.readSignal()
+	}()
+	go func() {
+		defer w.wg.Done()
+		w.readEvent()
+	}()
+}
+
+func (w *watcher) Start() {
+	w.start()
 	w.watch()
-	w.readEvents()
+	w.wg.Wait()
+}
+
+func (w *watcher) Stop() {
+	notify.Stop(w.events)
+	w.done <- true
+	w.done <- true
 }
 
 func NewWatcher(cfg Config, onFile OnFile, log *log.Logger) *watcher {
 	// Buffer events so that we don't miss any
 	events := make(chan notify.EventInfo, cfg.BufferSize)
-	rescanSig := make(chan os.Signal, 1)
-	signal.Notify(rescanSig, syscall.SIGUSR1)
-	reloadSig := make(chan os.Signal, 1)
-	signal.Notify(reloadSig, syscall.SIGUSR2)
+	sig := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(sig)
 	return &watcher{
-		config:    cfg,
-		events:    events,
-		log:       log,
-		onFile:    onFile,
-		rescanSig: rescanSig,
-		reloadSig: reloadSig,
+		config: cfg,
+		events: events,
+		log:    log,
+		onFile: onFile,
+		signal: sig,
+		done:   done,
 	}
 }
