@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -32,13 +33,12 @@ func newWatcher(dir string, onFile OnFile) *watcher {
 
 func TestWatching(t *testing.T) {
 	var files []string
-	onFile := func(name string, path Path) error {
-		files = append(files, name)
-		return nil
-	}
 	dir := tempDir()
 	f := filepath.Join(dir, "foo")
-	w := newWatcher(dir, onFile)
+	w := newWatcher(dir, func(name string, path Path) error {
+		files = append(files, name)
+		return nil
+	})
 	w.start()
 	w.watch()
 	defer w.Stop()
@@ -47,6 +47,46 @@ func TestWatching(t *testing.T) {
 	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Sleep until file is caught
+	ts := time.Now()
+	for len(files) == 0 {
+		time.Sleep(10 * time.Millisecond)
+		if time.Since(ts) > 2*time.Second {
+			t.Fatal("timed out waiting for file notification")
+		}
+
+	}
+	if files[0] != f {
+		t.Errorf("want %s, got %s", f, files[0])
+	}
+}
+
+func TestRescanning(t *testing.T) {
+	var files []string
+	dir := tempDir()
+	f := filepath.Join(dir, "foo")
+	w := newWatcher(dir, func(name string, path Path) error {
+		files = append(files, name)
+		return nil
+	})
+	defer w.Stop()
+	defer os.RemoveAll(dir)
+
+	// File is written before watcher is started
+	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(files) != 0 {
+		t.Fatal("no files expected yet")
+	}
+
+	w.start()
+	w.watch()
+
+	// USR2 triggers rescan
+	w.signal <- syscall.SIGUSR2
 
 	// Sleep until file is caught
 	ts := time.Now()
