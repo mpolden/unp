@@ -16,11 +16,11 @@ import (
 type OnFile func(Event, Path) error
 
 type dispatcher struct {
-	config  Config
-	onFile  OnFile
-	watcher chan notify.EventInfo
-	signal  chan os.Signal
-	log     *log.Logger
+	config Config
+	onFile OnFile
+	events chan notify.EventInfo
+	signal chan os.Signal
+	log    *log.Logger
 }
 
 func (d *dispatcher) dispatch(e Event) error {
@@ -47,7 +47,7 @@ func (d *dispatcher) dispatch(e Event) error {
 func (d *dispatcher) watch() {
 	for _, path := range d.config.Paths {
 		recursivePath := filepath.Join(path.Name, "...")
-		if err := notify.Watch(recursivePath, d.watcher, flags...); err != nil {
+		if err := notify.Watch(recursivePath, d.events, flags...); err != nil {
 			d.log.Printf("Failed to watch %s: %s", recursivePath, err)
 		} else {
 			d.log.Printf("Watching %s recursively", path.Name)
@@ -61,7 +61,7 @@ func (d *dispatcher) reload() {
 		d.log.Printf("Received %s, reloading configuration", s)
 		cfg, err := ReadConfig(d.config.filename)
 		if err == nil {
-			notify.Stop(d.watcher)
+			notify.Stop(d.events)
 			d.config = cfg
 			d.watch()
 		} else {
@@ -71,7 +71,7 @@ func (d *dispatcher) reload() {
 }
 
 func (d *dispatcher) readEvents() {
-	for ev := range d.watcher {
+	for ev := range d.events {
 		e := Event{ev}
 		if e.IsCloseWrite() {
 			if err := d.dispatch(e); err != nil {
@@ -87,16 +87,16 @@ func (d *dispatcher) Serve() {
 	d.readEvents()
 }
 
-func New(cfg Config, handler OnFile, log *log.Logger) *dispatcher {
+func New(cfg Config, onFile OnFile, log *log.Logger) *dispatcher {
 	// Buffer events so that we don't miss any
-	watcher := make(chan notify.EventInfo, cfg.BufferSize)
+	events := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGUSR2)
 	return &dispatcher{
-		config:  cfg,
-		watcher: watcher,
-		log:     log,
-		onFile:  handler,
-		signal:  sig,
+		config: cfg,
+		events: events,
+		log:    log,
+		onFile: onFile,
+		signal: sig,
 	}
 }
