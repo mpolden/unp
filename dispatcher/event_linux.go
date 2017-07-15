@@ -8,6 +8,6 @@ import (
 
 var flags = []notify.Event{notify.Create, notify.InCloseWrite}
 
-func (e *Event) IsCloseWrite() bool {
-	return e.eventInfo.Event() == notify.InCloseWrite
+func isCloseWrite(event notify.Event) bool {
+	return event == notify.InCloseWrite
 }

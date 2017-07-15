@@ -6,6 +6,6 @@ import "github.com/rjeczalik/notify"
 
 var flags = []notify.Event{notify.Create, notify.Write}
 
-func (e *Event) IsCloseWrite() bool {
-	return e.eventInfo.Event() == notify.Write
+func isCloseWrite(event notify.Event) bool {
+	return event == notify.Write
 }
