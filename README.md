@@ -86,3 +86,13 @@ used like this: `{{.Name}}`
 
 The working directory of `PostCommand` will be set to the directory where the
 archive is located, equal to `{{.Dir}}`.
+
+## Signals
+
+unpacker reacts to the following signals:
+
+`SIGUSR1` triggers a re-scan which walks all configured paths and triggers
+unpacking for any archives that are found.
+
+`SIGUSR2` reloads configuration from disk. This can be used to watch new paths
+without restarting the program.
