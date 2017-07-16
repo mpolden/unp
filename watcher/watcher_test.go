@@ -35,11 +35,11 @@ func TestWatching(t *testing.T) {
 	var files []string
 	dir := tempDir()
 	f := filepath.Join(dir, "foo")
-	w := testWatcher(dir, func(name string, path Path) error {
+	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
 		files = append(files, name)
 		return nil
 	})
-	w.start()
+	w.goServe()
 	w.watch()
 	defer w.Stop()
 	defer os.RemoveAll(dir)
@@ -55,7 +55,6 @@ func TestWatching(t *testing.T) {
 		if time.Since(ts) > 2*time.Second {
 			t.Fatal("timed out waiting for file notification")
 		}
-
 	}
 	if files[0] != f {
 		t.Errorf("want %s, got %s", f, files[0])
@@ -66,7 +65,7 @@ func TestRescanning(t *testing.T) {
 	var files []string
 	dir := tempDir()
 	f := filepath.Join(dir, "foo")
-	w := testWatcher(dir, func(name string, path Path) error {
+	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
 		files = append(files, name)
 		return nil
 	})
@@ -82,7 +81,7 @@ func TestRescanning(t *testing.T) {
 		t.Fatal("no files expected yet")
 	}
 
-	w.start()
+	w.goServe()
 	w.watch()
 
 	// USR1 triggers rescan
@@ -95,7 +94,6 @@ func TestRescanning(t *testing.T) {
 		if time.Since(ts) > 2*time.Second {
 			t.Fatal("timed out waiting for file notification")
 		}
-
 	}
 	if files[0] != f {
 		t.Errorf("want %s, got %s", f, files[0])

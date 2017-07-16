@@ -15,7 +15,7 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(string, Path) error
+type OnFile func(string, string, bool) error
 
 type watcher struct {
 	config Config
@@ -47,7 +47,7 @@ func (w *watcher) handle(name string) error {
 		}
 		return errors.Errorf("no match found: %s", name)
 	}
-	return w.onFile(name, p)
+	return w.onFile(name, p.PostCommand, p.Remove)
 }
 
 func (w *watcher) watch() {
@@ -121,7 +121,7 @@ func (w *watcher) readEvent() {
 	}
 }
 
-func (w *watcher) start() {
+func (w *watcher) goServe() {
 	w.wg.Add(2)
 	go func() {
 		defer w.wg.Done()
@@ -134,7 +134,7 @@ func (w *watcher) start() {
 }
 
 func (w *watcher) Start() {
-	w.start()
+	w.goServe()
 	w.watch()
 	w.wg.Wait()
 }
