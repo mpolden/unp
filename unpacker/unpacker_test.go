@@ -29,27 +29,23 @@ func TestUnpacking(t *testing.T) {
 	}
 	testdata := filepath.Join(wd, "testdata")
 	files := []string{
-		"test1",
-		"test2",
-		"test3",
-		filepath.Join("test/test4"),
-		"nested.rar",
+		filepath.Join(testdata, "test1"),
+		filepath.Join(testdata, "test2"),
+		filepath.Join(testdata, "test3"),
+		filepath.Join(testdata, "test", "test4"),
+		filepath.Join(testdata, "test"),
+		filepath.Join(testdata, "nested.rar"),
 	}
-	u, err := New(testdata)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := u.Run(false); err != nil {
+	if err := OnFile(files[0], "", false); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
 		for _, f := range files {
-			os.Remove(filepath.Join(testdata, f))
+			os.Remove(f)
 		}
-		os.Remove(filepath.Join(testdata, "test"))
 	}()
 	for _, f := range files {
-		if _, err := os.Stat(filepath.Join(testdata, f)); os.IsNotExist(err) {
+		if _, err := os.Stat(f); os.IsNotExist(err) {
 			t.Fatal(err)
 		}
 	}
