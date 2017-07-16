@@ -53,7 +53,7 @@ func (w *watcher) handle(name string) error {
 func (w *watcher) watch() {
 	for _, path := range w.config.Paths {
 		rpath := filepath.Join(path.Name, "...")
-		if err := notify.Watch(rpath, w.events, flags...); err != nil {
+		if err := notify.Watch(rpath, w.events, writeFlag); err != nil {
 			w.log.Printf("Failed to watch %s: %s", rpath, err)
 		} else {
 			w.log.Printf("Watching %s recursively", path.Name)
@@ -112,13 +112,11 @@ func (w *watcher) readEvent() {
 		case <-w.done:
 			return
 		case ev := <-w.events:
-			if isCloseWrite(ev.Event()) {
-				w.mu.Lock()
-				if err := w.handle(ev.Path()); err != nil {
-					w.log.Printf("Skipping event: %s", err)
-				}
-				w.mu.Unlock()
+			w.mu.Lock()
+			if err := w.handle(ev.Path()); err != nil {
+				w.log.Printf("Skipping event: %s", err)
 			}
+			w.mu.Unlock()
 		}
 	}
 }
