@@ -1,6 +1,6 @@
 // +build linux
 
-package event
+package watcher
 
 import (
 	"github.com/rjeczalik/notify"

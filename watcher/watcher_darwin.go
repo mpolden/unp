@@ -1,6 +1,6 @@
 // +build darwin
 
-package event
+package watcher
 
 import "github.com/rjeczalik/notify"
 

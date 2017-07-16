@@ -1,4 +1,4 @@
-package event
+package watcher
 
 import (
 	"os"
@@ -52,9 +52,9 @@ func (w *watcher) handle(name string) error {
 
 func (w *watcher) watch() {
 	for _, path := range w.config.Paths {
-		recursivePath := filepath.Join(path.Name, "...")
-		if err := notify.Watch(recursivePath, w.events, flags...); err != nil {
-			w.log.Printf("Failed to watch %s: %s", recursivePath, err)
+		rpath := filepath.Join(path.Name, "...")
+		if err := notify.Watch(rpath, w.events, flags...); err != nil {
+			w.log.Printf("Failed to watch %s: %s", rpath, err)
 		} else {
 			w.log.Printf("Watching %s recursively", path.Name)
 		}
@@ -147,7 +147,7 @@ func (w *watcher) Stop() {
 	w.done <- true
 }
 
-func NewWatcher(cfg Config, onFile OnFile, log *log.Logger) *watcher {
+func New(cfg Config, onFile OnFile, log *log.Logger) *watcher {
 	// Buffer events so that we don't miss any
 	events := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)

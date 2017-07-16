@@ -1,4 +1,4 @@
-package event
+package watcher
 
 import (
 	"encoding/json"

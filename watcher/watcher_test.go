@@ -1,4 +1,4 @@
-package event
+package watcher
 
 import (
 	"io/ioutil"
@@ -22,20 +22,20 @@ func tempDir() string {
 	return path
 }
 
-func newWatcher(dir string, onFile OnFile) *watcher {
+func testWatcher(dir string, onFile OnFile) *watcher {
 	cfg := Config{
 		BufferSize: 10,
 		Paths:      []Path{{Name: dir, MaxDepth: 100, Patterns: []string{"*"}}},
 	}
 	log := log.New(ioutil.Discard, "", log.LstdFlags)
-	return NewWatcher(cfg, onFile, log)
+	return New(cfg, onFile, log)
 }
 
 func TestWatching(t *testing.T) {
 	var files []string
 	dir := tempDir()
 	f := filepath.Join(dir, "foo")
-	w := newWatcher(dir, func(name string, path Path) error {
+	w := testWatcher(dir, func(name string, path Path) error {
 		files = append(files, name)
 		return nil
 	})
@@ -66,7 +66,7 @@ func TestRescanning(t *testing.T) {
 	var files []string
 	dir := tempDir()
 	f := filepath.Join(dir, "foo")
-	w := newWatcher(dir, func(name string, path Path) error {
+	w := testWatcher(dir, func(name string, path Path) error {
 		files = append(files, name)
 		return nil
 	})
