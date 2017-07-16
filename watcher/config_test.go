@@ -2,24 +2,15 @@ package watcher
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 )
 
-func mustTempDir() string {
-	name, err := ioutil.TempDir("", "dispatcher")
-	if err != nil {
-		panic(err)
-	}
-	return name
-}
-
 func TestReadConfig(t *testing.T) {
-	path1 := mustTempDir()
+	path1 := tempDir()
 	defer os.RemoveAll(path1)
-	path2 := mustTempDir()
+	path2 := tempDir()
 	defer os.RemoveAll(path2)
 	jsonConfig := fmt.Sprintf(`
 {
