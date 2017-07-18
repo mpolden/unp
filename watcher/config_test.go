@@ -43,7 +43,7 @@ func TestReadConfig(t *testing.T) {
 	for _, tt := range tests {
 		path := cfg.Paths[tt.i]
 		if got := path.MaxDepth; got != tt.out {
-			t.Errorf("Expected MaxDepth=%d, got Parser=%d for Name=%q", tt.out, got, path.Name)
+			t.Errorf("want MaxDepth=%d, got MaxDepth=%d for Name=%q", tt.out, got, path.Name)
 		}
 	}
 }
@@ -63,10 +63,10 @@ func TestFindPath(t *testing.T) {
 	for _, tt := range tests {
 		rv, ok := c.findPath(tt.in)
 		if ok != tt.ok {
-			t.Errorf("Expected %t, got %t", tt.ok, ok)
+			t.Errorf("want %t, got %t", tt.ok, ok)
 		}
 		if rv.Name != tt.out {
-			t.Errorf("Expected %q, got %q", tt.out, rv.Name)
+			t.Errorf("want %q, got %q", tt.out, rv.Name)
 		}
 	}
 }
@@ -86,10 +86,10 @@ func TestPathMatch(t *testing.T) {
 	for _, tt := range tests {
 		rv, err := tt.p.match(tt.in)
 		if err != nil && err.Error() != tt.err {
-			t.Fatalf("Expected error %q, got %q", tt.err, err.Error())
+			t.Fatalf("want error %q, got %q", tt.err, err.Error())
 		}
 		if rv != tt.out {
-			t.Errorf("Expected %t, got %t", tt.out, rv)
+			t.Errorf("want %t, got %t", tt.out, rv)
 		}
 	}
 }
@@ -107,7 +107,7 @@ func TestValidDepth(t *testing.T) {
 	p := Path{MinDepth: 4, MaxDepth: 5}
 	for _, tt := range tests {
 		if rv := p.validDepth(tt.in); rv != tt.out {
-			t.Errorf("Expected %t, got %t", tt.out, rv)
+			t.Errorf("want %t, got %t", tt.out, rv)
 		}
 	}
 }
