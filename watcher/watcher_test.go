@@ -44,9 +44,10 @@ func awaitFile(files *[]string, file string) (bool, error) {
 }
 
 func TestWatching(t *testing.T) {
-	var files []string
 	dir := tempDir()
-	f := filepath.Join(dir, "foo")
+	defer os.RemoveAll(dir)
+
+	var files []string
 	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
 		files = append(files, name)
 		return nil
@@ -54,8 +55,8 @@ func TestWatching(t *testing.T) {
 	w.goServe()
 	w.watch()
 	defer w.Stop()
-	defer os.RemoveAll(dir)
 
+	f := filepath.Join(dir, "foo")
 	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -70,17 +71,18 @@ func TestWatching(t *testing.T) {
 }
 
 func TestRescanning(t *testing.T) {
-	var files []string
 	dir := tempDir()
-	f := filepath.Join(dir, "foo")
+	defer os.RemoveAll(dir)
+
+	var files []string
 	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
 		files = append(files, name)
 		return nil
 	})
 	defer w.Stop()
-	defer os.RemoveAll(dir)
 
 	// File is written before watcher is started
+	f := filepath.Join(dir, "foo")
 	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +97,6 @@ func TestRescanning(t *testing.T) {
 	// USR1 triggers rescan
 	w.signal <- syscall.SIGUSR1
 
-	// Sleep until file is caught
 	ok, err := awaitFile(&files, f)
 	if err != nil {
 		t.Fatal(err)
@@ -113,12 +114,12 @@ func TestReloading(t *testing.T) {
 	})
 	defer w.Stop()
 
-	cfgFile, err := ioutil.TempFile("", "unpacker")
+	tmp, err := ioutil.TempFile("", "unpacker")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(cfgFile.Name())
-	w.config = Config{filename: cfgFile.Name()}
+	defer os.Remove(tmp.Name())
+	w.config = Config{filename: tmp.Name()}
 
 	// Start serving with empty config
 	w.goServe()
@@ -130,12 +131,21 @@ func TestReloading(t *testing.T) {
 
 	// Write config that references directory
 	cfg := fmt.Sprintf(`{"Paths": [{"Name": "%s", "Patterns": ["*"], "MaxDepth": 100}]}`, dir)
-	if err := ioutil.WriteFile(cfgFile.Name(), []byte(cfg), 0644); err != nil {
+	if err := ioutil.WriteFile(tmp.Name(), []byte(cfg), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// USR2 triggers config reload
 	w.signal <- syscall.SIGUSR2
+
+	// Wait until config is loaded
+	ts := time.Now()
+	for len(w.config.Paths) == 0 {
+		time.Sleep(10 * time.Millisecond)
+		if time.Since(ts) > 2*time.Second {
+			t.Fatal("timed out waiting for new config")
+		}
+	}
 
 	f := filepath.Join(dir, "foo")
 	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
