@@ -50,7 +50,7 @@ func chtimes(name string, header *rardecode.FileHeader) error {
 	if header.ModificationTime.IsZero() {
 		return nil
 	}
-	return os.Chtimes(name, header.ModificationTime, header.ModificationTime)
+	return os.Chtimes(name, header.ModificationTime.UTC(), header.ModificationTime.UTC())
 }
 
 func (u *unpacker) unpack(name string) error {

@@ -33,12 +33,12 @@ func TestUnpacking(t *testing.T) {
 		file  string
 		mtime int64
 	}{
-		{filepath.Join(testdata, "test1"), 1498239476},
-		{filepath.Join(testdata, "test2"), 1498239478},
-		{filepath.Join(testdata, "test3"), 1498239480},
-		{filepath.Join(testdata, "test", "test4"), 1498309326},
-		{filepath.Join(testdata, "test"), 1498309326},
-		{filepath.Join(testdata, "nested.rar"), 1498239497},
+		{filepath.Join(testdata, "test1"), 1498246676},
+		{filepath.Join(testdata, "test2"), 1498246678},
+		{filepath.Join(testdata, "test3"), 1498246680},
+		{filepath.Join(testdata, "test", "test4"), 1498316526},
+		{filepath.Join(testdata, "test"), 1498316526},
+		{filepath.Join(testdata, "nested.rar"), 1498246697},
 	}
 
 	defer func() {
