@@ -34,12 +34,12 @@ func TestUnpacking(t *testing.T) {
 		file  string
 		mtime int64
 	}{
-		{filepath.Join(testdata, "test1"), 1498239476},
-		{filepath.Join(testdata, "test2"), 1498239478},
-		{filepath.Join(testdata, "test3"), 1498239480},
-		{filepath.Join(testdata, "test", "test4"), 1498309326},
-		{filepath.Join(testdata, "test"), 1498309326},
-		{filepath.Join(testdata, "nested.rar"), 1498239497},
+		{filepath.Join(testdata, "test1"), 1498246676},
+		{filepath.Join(testdata, "test2"), 1498246678},
+		{filepath.Join(testdata, "test3"), 1498246680},
+		{filepath.Join(testdata, "test", "test4"), 1498316526},
+		{filepath.Join(testdata, "test"), 1498316526},
+		{filepath.Join(testdata, "nested.rar"), 1498246697},
 	}
 
 	defer func() {
@@ -59,9 +59,10 @@ func TestUnpacking(t *testing.T) {
 		if err != nil {
 			t.Fatalf("#%d: %s", i, err)
 		}
-		// ModTime adjusts mtime incorrectly by adding timezone offset.
+		// rardecode uses time.Local when parsing modification time, so the local time offset must
+		// be added when comparing
 		_, offset := time.Now().Zone()
-		if got := fi.ModTime().Unix() + int64(offset-7200); got != tt.mtime {
+		if got := fi.ModTime().Unix() + int64(offset); got != tt.mtime {
 			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
 	}
