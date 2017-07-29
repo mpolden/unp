@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mpolden/sfv"
 )
@@ -58,7 +59,9 @@ func TestUnpacking(t *testing.T) {
 		if err != nil {
 			t.Fatalf("#%d: %s", i, err)
 		}
-		if got := fi.ModTime().Unix(); got != tt.mtime {
+		// ModTime adjusts mtime incorrectly by adding timezone offset.
+		_, offset := time.Now().Zone()
+		if got := fi.ModTime().Unix() + int64(offset-7200); got != tt.mtime {
 			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
 	}
