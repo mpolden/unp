@@ -28,25 +28,39 @@ func TestUnpacking(t *testing.T) {
 		t.Fatal(err)
 	}
 	testdata := filepath.Join(wd, "testdata")
-	files := []string{
-		filepath.Join(testdata, "test1"),
-		filepath.Join(testdata, "test2"),
-		filepath.Join(testdata, "test3"),
-		filepath.Join(testdata, "test", "test4"),
-		filepath.Join(testdata, "test"),
-		filepath.Join(testdata, "nested.rar"),
+
+	var tests = []struct {
+		file  string
+		mtime int64
+	}{
+		{filepath.Join(testdata, "test1"), 1498239476},
+		{filepath.Join(testdata, "test2"), 1498239478},
+		{filepath.Join(testdata, "test3"), 1498239480},
+		{filepath.Join(testdata, "test", "test4"), 1498309326},
+		{filepath.Join(testdata, "test"), 1498309326},
+		{filepath.Join(testdata, "nested.rar"), 1498239497},
 	}
-	if err := OnFile(files[0], "", false); err != nil {
-		t.Fatal(err)
-	}
+
 	defer func() {
-		for _, f := range files {
-			os.Remove(f)
+		for _, tt := range tests {
+			os.Remove(tt.file)
 		}
 	}()
-	for _, f := range files {
-		if _, err := os.Stat(f); os.IsNotExist(err) {
-			t.Fatal(err)
+
+	// Trigger unpacking by passing in a file contained in testdata
+	if err := OnFile(tests[0].file, "", false); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tt := range tests {
+		// Verify that file have been unpacked
+		fi, err := os.Stat(tt.file)
+		if err != nil {
+			t.Fatalf("#%d: %s", i, err)
+		}
+		if got := fi.ModTime().Unix(); got != tt.mtime {
+			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
 	}
+
 }

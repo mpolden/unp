@@ -46,6 +46,13 @@ func findRAR(s *sfv.SFV) (string, error) {
 	return "", errors.Errorf("no rar file found in %s", s.Path)
 }
 
+func chtimes(name string, header *rardecode.FileHeader) error {
+	if header.ModificationTime.IsZero() {
+		return nil
+	}
+	return os.Chtimes(name, header.ModificationTime, header.ModificationTime)
+}
+
 func (u *unpacker) unpack(name string) error {
 	r, err := rardecode.OpenReader(name, "")
 	if err != nil {
@@ -60,28 +67,37 @@ func (u *unpacker) unpack(name string) error {
 			return err
 		}
 		name := filepath.Join(u.Dir, header.Name)
+		// If entry is a directory, create it and set correct ctime
 		if header.IsDir {
 			if err := os.MkdirAll(name, 0755); err != nil {
 				return err
 			}
+			if err := chtimes(name, header); err != nil {
+				return err
+			}
 			continue
 		}
-		// Ensure parent directory is created
-		if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
+		// Files can come before their containing folders, ensure that parent is created
+		parent := filepath.Dir(name)
+		if err := os.MkdirAll(parent, 0755); err != nil {
 			return err
 		}
+		if err := chtimes(parent, header); err != nil {
+			return err
+		}
+		// Unpack file
 		f, err := os.Create(name)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create file: %s", name)
 		}
-		_, err = io.Copy(f, r)
-		if err != nil {
+		if _, err = io.Copy(f, r); err != nil {
 			return err
 		}
-		if err1 := f.Close(); err1 != nil {
-			err = err1
+		if err := f.Close(); err != nil {
+			return err
 		}
-		if err != nil {
+		// Set correct ctime of unpacked file
+		if err := chtimes(name, header); err != nil {
 			return err
 		}
 		// Unpack recursively if unpacked file is also a RAR
