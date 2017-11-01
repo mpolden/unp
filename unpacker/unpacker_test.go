@@ -61,7 +61,7 @@ func TestUnpacking(t *testing.T) {
 		}
 		// rardecode uses time.Local when parsing modification time, so the local time offset must
 		// be added when comparing
-		_, offset := time.Now().Zone()
+		_, offset := time.Unix(tt.mtime, 0).Zone()
 		if got := fi.ModTime().Unix() + int64(offset); got != tt.mtime {
 			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
