@@ -13,4 +13,5 @@ deps:
 	go get -d -v ./...
 
 install:
-	go install
+	go install ./...
+
