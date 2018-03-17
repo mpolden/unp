@@ -10,7 +10,7 @@ import (
 
 	"log"
 
-	"github.com/mpolden/unpacker/pathutil"
+	"github.com/mpolden/unp/pathutil"
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
 )

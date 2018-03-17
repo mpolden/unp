@@ -1,19 +1,19 @@
-# unpacker
+# unp
 
-[![Build Status](https://travis-ci.org/mpolden/unpacker.svg)](https://travis-ci.org/mpolden/unpacker)
+[![Build Status](https://travis-ci.org/mpolden/unp.svg)](https://travis-ci.org/mpolden/unp)
 
-unpacker is a small server that monitors directories, verifies SFV files and
+`unp` is a small server that monitors directories, verifies SFV files and
 unpacks archives automatically.
 
 ## Usage
 
 ```
-$ unpacker -h
+unp -h
 Usage:
-  unpacker [OPTIONS]
+  unp [OPTIONS]
 
 Application Options:
-  -f, --config=FILE    Config file (default: ~/.unpackerrc)
+  -f, --config=FILE    Config file (default: ~/.unprc)
   -t, --test           Test and print config
 
 Help Options:
@@ -89,7 +89,7 @@ archive is located, equal to `{{.Dir}}`.
 
 ## Signals
 
-unpacker reacts to the following signals:
+`unp` reacts to the following signals:
 
 `SIGUSR1` triggers a re-scan which walks all configured paths and triggers
 unpacking for any archives that are found.

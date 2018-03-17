@@ -7,13 +7,13 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 
-	"github.com/mpolden/unpacker/unpacker"
-	"github.com/mpolden/unpacker/watcher"
+	"github.com/mpolden/unp/unpacker"
+	"github.com/mpolden/unp/watcher"
 )
 
 func main() {
 	var opts struct {
-		Config string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.unpackerrc"`
+		Config string `short:"f" long:"config" description:"Config file" value-name:"FILE" default:"~/.unprc"`
 		Test   bool   `short:"t" long:"test" description:"Test and print config"`
 	}
 

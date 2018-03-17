@@ -12,7 +12,7 @@ import (
 )
 
 func tempDir() string {
-	dir, err := ioutil.TempDir("", "unpacker")
+	dir, err := ioutil.TempDir("", "unp")
 	if err != nil {
 		panic(err)
 	}
@@ -114,7 +114,7 @@ func TestReloading(t *testing.T) {
 	})
 	defer w.Stop()
 
-	tmp, err := ioutil.TempFile("", "unpacker")
+	tmp, err := ioutil.TempFile("", "unp")
 	if err != nil {
 		t.Fatal(err)
 	}
