@@ -36,7 +36,7 @@ func main() {
 		return
 	}
 
-	log := log.New(os.Stderr, "", log.LstdFlags)
+	log := log.New(os.Stderr, "unp: ", 0)
 	w := watcher.New(cfg, unpacker.OnFile, log)
 	w.Start()
 }
