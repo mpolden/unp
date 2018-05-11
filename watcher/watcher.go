@@ -33,7 +33,7 @@ func (w *watcher) handle(name string) error {
 	if !ok {
 		return errors.Errorf("no configured path found: %s", name)
 	}
-	if p.SkipHidden && (pathutil.IsHidden(name) || pathutil.IsParentHidden(name)) {
+	if p.SkipHidden && pathutil.ContainsHidden(name) {
 		return errors.Errorf("hidden parent dir or file: %s", name)
 	}
 	depth := pathutil.Depth(name)

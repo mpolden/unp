@@ -11,20 +11,10 @@ func Depth(name string) int {
 	return strings.Count(name, string(os.PathSeparator))
 }
 
-func IsHidden(name string) bool {
-	if strings.ContainsRune(name, os.PathSeparator) {
-		name = filepath.Base(name)
-	}
-	return strings.HasPrefix(name, ".")
-}
-
-func IsParentHidden(name string) bool {
-	if !strings.ContainsRune(name, os.PathSeparator) {
-		return false
-	}
-	components := strings.Split(filepath.Dir(name), string(os.PathSeparator))
-	for _, c := range components {
-		if IsHidden(c) {
+func ContainsHidden(path string) bool {
+	names := strings.Split(path, string(os.PathSeparator))
+	for _, name := range names {
+		if strings.HasPrefix(name, ".") {
 			return true
 		}
 	}
