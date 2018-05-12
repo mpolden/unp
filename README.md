@@ -24,7 +24,7 @@ Help Options:
 
 ```json
 {
-  "BufferSize": 100,
+  "BufferSize": 1024,
   "Paths": [
     {
       "Name": "/home/foo/videos",
@@ -46,7 +46,7 @@ Help Options:
 
 `BufferSize` sets the maximum number of file system to queue. This should be
 large enough to store events that occur while unpacking files. The default value
-is `100`.
+is `1024`.
 
 `Paths` is an array of paths to watch.
 

@@ -66,7 +66,7 @@ func readConfig(r io.Reader) (Config, error) {
 	}
 	// Set a default buffer size
 	if cfg.BufferSize <= 0 {
-		cfg.BufferSize = 100
+		cfg.BufferSize = 1024
 	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
