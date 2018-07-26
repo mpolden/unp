@@ -7,7 +7,7 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 
-	"github.com/mpolden/unp/unpacker"
+	"github.com/mpolden/unp/rar"
 	"github.com/mpolden/unp/watcher"
 )
 
@@ -37,6 +37,6 @@ func main() {
 	}
 
 	log := log.New(os.Stderr, "unp: ", 0)
-	w := watcher.New(cfg, unpacker.OnFile, log)
+	w := watcher.New(cfg, rar.Unpack, log)
 	w.Start()
 }

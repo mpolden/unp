@@ -1,13 +1,53 @@
-package unpacker
+package rar
 
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/mpolden/sfv"
 )
+
+func TestNewCmd(t *testing.T) {
+	tmpl := "tar -xf {{.Name}} {{.Base}} {{.Dir}}"
+	values := archive{
+		Name: "/foo/bar/baz.rar",
+		Base: "baz.rar",
+		Dir:  "/foo/bar",
+	}
+
+	cmd, err := newCmd(tmpl, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd.Dir != values.Dir {
+		t.Fatalf("Expected %s, got %s", values.Dir, cmd.Dir)
+	}
+	if !strings.Contains(cmd.Path, string(os.PathSeparator)) {
+		t.Fatalf("Expected %s to contain a path separator", cmd.Path)
+	}
+	if cmd.Args[0] != "tar" {
+		t.Fatalf("Expected 'tar', got '%s'", cmd.Args[0])
+	}
+	if cmd.Args[1] != "-xf" {
+		t.Fatalf("Expected '-xf', got '%s'", cmd.Args[1])
+	}
+	if cmd.Args[2] != values.Name {
+		t.Fatalf("Expected '%s', got '%s'", values.Name, cmd.Args[2])
+	}
+	if cmd.Args[3] != values.Base {
+		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[3])
+	}
+	if cmd.Args[4] != values.Dir {
+		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[4])
+	}
+
+	if _, err := newCmd("tar -xf {{.Bar}}", values); err == nil {
+		t.Fatal("Expected error")
+	}
+}
 
 func TestFindFirstRAR(t *testing.T) {
 	var tests = []struct {
@@ -49,7 +89,7 @@ func TestFindFirstRAR(t *testing.T) {
 	}
 }
 
-func TestUnpacking(t *testing.T) {
+func TestUnpack(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +115,7 @@ func TestUnpacking(t *testing.T) {
 	}()
 
 	// Trigger unpacking by passing in a file contained in testdata
-	if err := OnFile(tests[0].file, "", false); err != nil {
+	if err := Unpack(tests[0].file, "", false); err != nil {
 		t.Fatal(err)
 	}
 

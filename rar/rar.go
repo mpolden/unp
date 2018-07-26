@@ -1,11 +1,14 @@
-package unpacker
+package rar
 
 import (
 	"bytes"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
+	"text/template"
 
 	"github.com/mpolden/sfv"
 	"github.com/nwaples/rardecode"
@@ -14,13 +17,37 @@ import (
 
 var rarPartRE = regexp.MustCompile(`\.part0*(\d+)\.rar$`)
 
-type unpacker struct {
-	SFV  *sfv.SFV
-	Dir  string
+type archive struct {
 	Name string
+	Dir  string
+	Base string
 }
 
-func New(dir string) (*unpacker, error) {
+type unpacker struct {
+	sfv  *sfv.SFV
+	dir  string
+	name string
+}
+
+func newCmd(tmpl string, a archive) (*exec.Cmd, error) {
+	t, err := template.New("cmd").Parse(tmpl)
+	if err != nil {
+		return nil, err
+	}
+	var b bytes.Buffer
+	if err := t.Execute(&b, a); err != nil {
+		return nil, err
+	}
+	argv := strings.Split(b.String(), " ")
+	if len(argv) == 0 {
+		return nil, errors.New("template compiled to empty command")
+	}
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Dir = a.Dir
+	return cmd, nil
+}
+
+func newUnpacker(dir string) (*unpacker, error) {
 	sfv, err := sfv.Find(dir)
 	if err != nil {
 		return nil, err
@@ -30,9 +57,9 @@ func New(dir string) (*unpacker, error) {
 		return nil, err
 	}
 	return &unpacker{
-		SFV:  sfv,
-		Dir:  dir,
-		Name: rar,
+		sfv:  sfv,
+		dir:  dir,
+		name: rar,
 	}, nil
 }
 
@@ -75,7 +102,7 @@ func (u *unpacker) unpack(name string) error {
 		if err != nil {
 			return err
 		}
-		name := filepath.Join(u.Dir, header.Name)
+		name := filepath.Join(u.dir, header.Name)
 		// If entry is a directory, create it and set correct ctime
 		if header.IsDir {
 			if err := os.MkdirAll(name, 0755); err != nil {
@@ -120,32 +147,32 @@ func (u *unpacker) unpack(name string) error {
 }
 
 func (u *unpacker) remove() error {
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	return os.Remove(u.SFV.Path)
+	return os.Remove(u.sfv.Path)
 }
 
 func (u *unpacker) fileCount() (int, int) {
 	exists := 0
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		if c.IsExist() {
 			exists++
 		}
 	}
-	return exists, len(u.SFV.Checksums)
+	return exists, len(u.sfv.Checksums)
 }
 
 func (u *unpacker) verify() error {
-	for _, c := range u.SFV.Checksums {
+	for _, c := range u.sfv.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return errors.Errorf("%s: failed checksum: %s", u.SFV.Path, c.Filename)
+			return errors.Errorf("%s: failed checksum: %s", u.sfv.Path, c.Filename)
 		}
 	}
 	return nil
@@ -153,17 +180,17 @@ func (u *unpacker) verify() error {
 
 func (u *unpacker) Run(removeRARs bool) error {
 	if exists, total := u.fileCount(); exists != total {
-		return errors.Errorf("%s is incomplete: %d/%d files", u.Dir, exists, total)
+		return errors.Errorf("%s is incomplete: %d/%d files", u.dir, exists, total)
 	}
 	if err := u.verify(); err != nil {
-		return errors.Wrapf(err, "verification of %s failed", u.Dir)
+		return errors.Wrapf(err, "verification of %s failed", u.dir)
 	}
-	if err := u.unpack(u.Name); err != nil {
-		return errors.Wrapf(err, "unpacking %s failed", u.Dir)
+	if err := u.unpack(u.name); err != nil {
+		return errors.Wrapf(err, "unpacking %s failed", u.dir)
 	}
 	if removeRARs {
 		if err := u.remove(); err != nil {
-			return errors.Wrapf(err, "cleaning up %s failed", u.Dir)
+			return errors.Wrapf(err, "cleaning up %s failed", u.dir)
 		}
 	}
 	return nil
@@ -173,12 +200,11 @@ func postProcess(u *unpacker, command string) error {
 	if command == "" {
 		return nil
 	}
-	values := cmdValues{
-		Name: u.Name,
-		Base: filepath.Base(u.Dir),
-		Dir:  u.Dir,
-	}
-	cmd, err := newCmd(command, values)
+	cmd, err := newCmd(command, archive{
+		Name: u.name,
+		Base: filepath.Base(u.dir),
+		Dir:  u.dir,
+	})
 	if err != nil {
 		return err
 	}
@@ -190,8 +216,8 @@ func postProcess(u *unpacker, command string) error {
 	return nil
 }
 
-func OnFile(name, postCommand string, remove bool) error {
-	u, err := New(filepath.Dir(name))
+func Unpack(name, postCommand string, remove bool) error {
+	u, err := newUnpacker(filepath.Dir(name))
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")
 	}
