@@ -9,17 +9,43 @@ import (
 	"github.com/mpolden/sfv"
 )
 
-func TestFindRAR(t *testing.T) {
-	sfv := &sfv.SFV{Checksums: []sfv.Checksum{
-		sfv.Checksum{Path: "foo.r00"},
-		sfv.Checksum{Path: "foo.rar"},
-	}}
-	archive, err := findRAR(sfv)
-	if err != nil {
-		t.Fatal(err)
+func TestFindFirstRAR(t *testing.T) {
+	var tests = []struct {
+		sfv      *sfv.SFV
+		firstRAR string
+	}{
+		{&sfv.SFV{Checksums: []sfv.Checksum{
+			{Path: "foo.r00"},
+			{Path: "foo.rar"},
+			{Path: "foo.r01"},
+		}}, "foo.rar"},
+		{&sfv.SFV{Checksums: []sfv.Checksum{
+			{Path: "foo.part3.rar"},
+			{Path: "foo.part2.rar"},
+			{Path: "foo.part1.rar"},
+		}}, "foo.part1.rar"},
+		{&sfv.SFV{Checksums: []sfv.Checksum{
+			{Path: "foo.part03.rar"},
+			{Path: "foo.part01.rar"},
+			{Path: "foo.part10.rar"},
+			{Path: "foo.part02.rar"},
+		}}, "foo.part01.rar"},
+		{&sfv.SFV{Checksums: []sfv.Checksum{
+			{Path: "foo.part003.rar"},
+			{Path: "foo.part100.rar"},
+			{Path: "foo.part001.rar"},
+			{Path: "foo.part002.rar"},
+		}}, "foo.part001.rar"},
 	}
-	if want := "foo.rar"; archive != want {
-		t.Errorf("want %q, got %q", want, archive)
+
+	for i, tt := range tests {
+		got, err := findFirstRAR(tt.sfv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := tt.firstRAR; want != got {
+			t.Errorf("#%d: want %q, got %q", i, want, got)
+		}
 	}
 }
 

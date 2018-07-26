@@ -5,11 +5,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/mpolden/sfv"
 	"github.com/nwaples/rardecode"
 	"github.com/pkg/errors"
 )
+
+var rarPartRE = regexp.MustCompile(`\.part0*(\d+)\.rar$`)
 
 type unpacker struct {
 	SFV  *sfv.SFV
@@ -22,7 +25,7 @@ func New(dir string) (*unpacker, error) {
 	if err != nil {
 		return nil, err
 	}
-	rar, err := findRAR(sfv)
+	rar, err := findFirstRAR(sfv)
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +36,19 @@ func New(dir string) (*unpacker, error) {
 	}, nil
 }
 
-func isRAR(name string) bool {
-	return filepath.Ext(name) == ".rar"
+func isRAR(name string) bool { return filepath.Ext(name) == ".rar" }
+
+func isFirstRAR(name string) bool {
+	m := rarPartRE.FindStringSubmatch(name)
+	if len(m) == 2 {
+		return m[1] == "1"
+	}
+	return isRAR(name)
 }
 
-func findRAR(s *sfv.SFV) (string, error) {
+func findFirstRAR(s *sfv.SFV) (string, error) {
 	for _, c := range s.Checksums {
-		if isRAR(c.Path) {
+		if isFirstRAR(c.Path) {
 			return c.Path, nil
 		}
 	}
