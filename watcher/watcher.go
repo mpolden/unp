@@ -74,12 +74,21 @@ func (w *watcher) reload() {
 
 func (w *watcher) rescan() {
 	for _, p := range w.config.Paths {
-		filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 			if info == nil || !info.Mode().IsRegular() {
 				return nil
 			}
-			return w.handle(path)
+			if err := w.handle(path); err != nil {
+				w.log.Printf("Skipping event: %s", err)
+			}
+			return nil
 		})
+		if err != nil {
+			w.log.Printf("Rescanning %s failed: %s", p.Name, err)
+		}
 	}
 }
 

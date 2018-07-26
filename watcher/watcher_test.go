@@ -74,16 +74,23 @@ func TestRescanning(t *testing.T) {
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 
+	f1 := filepath.Join(dir, "foo")
+	f2 := filepath.Join(dir, "bar")
 	var files []string
 	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
+		if name != f1 {
+			return fmt.Errorf("unhandled file: %s", name)
+		}
 		files = append(files, name)
 		return nil
 	})
 	defer w.Stop()
 
-	// File is written before watcher is started
-	f := filepath.Join(dir, "foo")
-	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
+	// Files are written before watcher is started
+	if err := ioutil.WriteFile(f1, []byte{0}, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(f2, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,12 +104,12 @@ func TestRescanning(t *testing.T) {
 	// USR1 triggers rescan
 	w.signal <- syscall.SIGUSR1
 
-	ok, err := awaitFile(&files, f)
+	ok, err := awaitFile(&files, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !ok {
-		t.Errorf("want %s, got %s", f, files[0])
+		t.Errorf("want %s, got %s", f1, files[0])
 	}
 }
 
