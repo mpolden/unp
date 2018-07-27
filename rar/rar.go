@@ -178,7 +178,7 @@ func (u *unpacker) verify() error {
 	return nil
 }
 
-func (u *unpacker) Run(removeRARs bool) error {
+func (u *unpacker) run(removeRARs bool) error {
 	if exists, total := u.fileCount(); exists != total {
 		return errors.Errorf("%s is incomplete: %d/%d files", u.dir, exists, total)
 	}
@@ -221,7 +221,7 @@ func Unpack(name, postCommand string, remove bool) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize unpacker")
 	}
-	if err := u.Run(remove); err != nil {
+	if err := u.run(remove); err != nil {
 		return err
 	}
 	if err := postProcess(u, postCommand); err != nil {
