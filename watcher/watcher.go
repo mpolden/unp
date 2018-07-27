@@ -54,9 +54,9 @@ func (w *watcher) watch() {
 	for _, path := range w.config.Paths {
 		rpath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(rpath, w.events, writeFlag); err != nil {
-			w.log.Printf("Failed to watch %s: %s", rpath, err)
+			w.log.Printf("failed to watch %s: %s", rpath, err)
 		} else {
-			w.log.Printf("Watching %s recursively", path.Name)
+			w.log.Printf("watching %s recursively", path.Name)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func (w *watcher) reload() {
 		w.config = cfg
 		w.watch()
 	} else {
-		w.log.Printf("Failed to read config: %s", err)
+		w.log.Printf("failed to read config: %s", err)
 	}
 }
 
@@ -82,12 +82,12 @@ func (w *watcher) rescan() {
 				return nil
 			}
 			if err := w.handle(path); err != nil {
-				w.log.Printf("Skipping event: %s", err)
+				w.log.Printf("ignoring event: %s", err)
 			}
 			return nil
 		})
 		if err != nil {
-			w.log.Printf("Rescanning %s failed: %s", p.Name, err)
+			w.log.Printf("failed to rescan %s: %s", p.Name, err)
 		}
 	}
 }
@@ -101,13 +101,13 @@ func (w *watcher) readSignal() {
 			w.mu.Lock()
 			switch s {
 			case syscall.SIGUSR1:
-				w.log.Printf("Received %s, rescanning watched directories", s)
+				w.log.Printf("received %s: rescanning watched directories", s)
 				w.rescan()
 			case syscall.SIGUSR2:
-				w.log.Printf("Received %s, reloading configuration", s)
+				w.log.Printf("received %s: reloading configuration", s)
 				w.reload()
 			case syscall.SIGTERM, syscall.SIGINT:
-				w.log.Printf("Received %s, shutting down", s)
+				w.log.Printf("received %s: shutting down", s)
 				w.Stop()
 			}
 			w.mu.Unlock()
@@ -123,7 +123,7 @@ func (w *watcher) readEvent() {
 		case ev := <-w.events:
 			w.mu.Lock()
 			if err := w.handle(ev.Path()); err != nil {
-				w.log.Printf("Skipping event: %s", err)
+				w.log.Printf("ignoring event: %s", err)
 			}
 			w.mu.Unlock()
 		}
