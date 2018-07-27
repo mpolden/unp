@@ -82,7 +82,7 @@ func (w *watcher) rescan() {
 				return nil
 			}
 			if err := w.handle(path); err != nil {
-				w.log.Printf("ignoring event: %s", err)
+				w.log.Print(err)
 			}
 			return nil
 		})
@@ -123,7 +123,7 @@ func (w *watcher) readEvent() {
 		case ev := <-w.events:
 			w.mu.Lock()
 			if err := w.handle(ev.Path()); err != nil {
-				w.log.Printf("ignoring event: %s", err)
+				w.log.Print(err)
 			}
 			w.mu.Unlock()
 		}

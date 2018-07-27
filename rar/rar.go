@@ -178,19 +178,19 @@ func (u *unpacker) verify() error {
 	return nil
 }
 
-func (u *unpacker) run(removeRARs bool) error {
+func (u *unpacker) Run(removeRARs bool) error {
 	if exists, total := u.fileCount(); exists != total {
-		return errors.Errorf("%s is incomplete: %d/%d files", u.dir, exists, total)
+		return errors.Errorf("incomplete: %s: %d/%d files", u.dir, exists, total)
 	}
 	if err := u.verify(); err != nil {
-		return errors.Wrapf(err, "verification of %s failed", u.dir)
+		return errors.Wrapf(err, "verification failed: %s", u.dir)
 	}
 	if err := u.unpack(u.name); err != nil {
-		return errors.Wrapf(err, "unpacking %s failed", u.dir)
+		return errors.Wrapf(err, "unpacking failed: %s", u.dir)
 	}
 	if removeRARs {
 		if err := u.remove(); err != nil {
-			return errors.Wrapf(err, "cleaning up %s failed", u.dir)
+			return errors.Wrapf(err, "removal failed: %s", u.dir)
 		}
 	}
 	return nil
@@ -211,21 +211,22 @@ func postProcess(u *unpacker, command string) error {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return errors.Errorf("%s: %s", err, stderr.String())
+		return errors.Wrapf(err, "stderr: %q", stderr.String())
 	}
 	return nil
 }
 
 func Unpack(name, postCommand string, remove bool) error {
-	u, err := newUnpacker(filepath.Dir(name))
+	path := filepath.Dir(name)
+	u, err := newUnpacker(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize unpacker")
+		return errors.Wrapf(err, "failed to create unpacker: %s", path)
 	}
-	if err := u.run(remove); err != nil {
+	if err := u.Run(remove); err != nil {
 		return err
 	}
 	if err := postProcess(u, postCommand); err != nil {
-		return errors.Wrap(err, "post-process command failed")
+		return errors.Wrapf(err, "post-process command failed: %s", path)
 	}
 	return nil
 }
