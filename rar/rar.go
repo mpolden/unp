@@ -79,7 +79,7 @@ func findFirstRAR(s *sfv.SFV) (string, error) {
 			return c.Path, nil
 		}
 	}
-	return "", errors.Errorf("no rar file found in %s", s.Path)
+	return "", errors.Errorf("no rar found in %s", s.Path)
 }
 
 func chtimes(name string, header *rardecode.FileHeader) error {
@@ -220,7 +220,7 @@ func Unpack(name, postCommand string, remove bool) error {
 	path := filepath.Dir(name)
 	u, err := newUnpacker(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create unpacker: %s", path)
+		return err
 	}
 	if err := u.Run(remove); err != nil {
 		return err
