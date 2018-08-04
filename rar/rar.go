@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/mpolden/sfv"
@@ -17,49 +18,34 @@ import (
 
 var rarPartRE = regexp.MustCompile(`\.part0*(\d+)\.rar$`)
 
-type archive struct {
-	Name string
-	Dir  string
+type event struct {
 	Base string
-}
-
-type unpacker struct {
+	Dir  string
+	Name string
 	sfv  *sfv.SFV
-	dir  string
-	name string
 }
 
-func newCmd(tmpl string, a archive) (*exec.Cmd, error) {
-	t, err := template.New("cmd").Parse(tmpl)
-	if err != nil {
-		return nil, err
-	}
-	var b bytes.Buffer
-	if err := t.Execute(&b, a); err != nil {
-		return nil, err
-	}
-	argv := strings.Split(b.String(), " ")
-	if len(argv) == 0 {
-		return nil, errors.New("template compiled to empty command")
-	}
-	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Dir = a.Dir
-	return cmd, nil
+type Handler struct {
+	mu sync.Mutex
 }
 
-func newUnpacker(dir string) (*unpacker, error) {
+func NewHandler() *Handler { return &Handler{} }
+
+func eventFrom(filename string) (event, error) {
+	dir := filepath.Dir(filename)
 	sfv, err := sfv.Find(dir)
 	if err != nil {
-		return nil, err
+		return event{}, err
 	}
 	rar, err := findFirstRAR(sfv)
 	if err != nil {
-		return nil, err
+		return event{}, err
 	}
-	return &unpacker{
+	return event{
 		sfv:  sfv,
-		dir:  dir,
-		name: rar,
+		Base: filepath.Base(rar),
+		Dir:  dir,
+		Name: rar,
 	}, nil
 }
 
@@ -89,11 +75,12 @@ func chtimes(name string, header *rardecode.FileHeader) error {
 	return os.Chtimes(name, header.ModificationTime, header.ModificationTime)
 }
 
-func (u *unpacker) unpack(name string) error {
-	r, err := rardecode.OpenReader(name, "")
+func unpack(filename string) error {
+	r, err := rardecode.OpenReader(filename, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", name)
+		return errors.Wrapf(err, "failed to open %s", filename)
 	}
+	dir := filepath.Dir(filename)
 	for {
 		header, err := r.Next()
 		if err == io.EOF {
@@ -102,7 +89,7 @@ func (u *unpacker) unpack(name string) error {
 		if err != nil {
 			return err
 		}
-		name := filepath.Join(u.dir, header.Name)
+		name := filepath.Join(dir, header.Name)
 		// If entry is a directory, create it and set correct ctime
 		if header.IsDir {
 			if err := os.MkdirAll(name, 0755); err != nil {
@@ -138,7 +125,7 @@ func (u *unpacker) unpack(name string) error {
 		}
 		// Unpack recursively if unpacked file is also a RAR
 		if isRAR(name) {
-			if err := u.unpack(name); err != nil {
+			if err := unpack(name); err != nil {
 				return err
 			}
 		}
@@ -146,65 +133,61 @@ func (u *unpacker) unpack(name string) error {
 	return nil
 }
 
-func (u *unpacker) remove() error {
-	for _, c := range u.sfv.Checksums {
+func remove(sfv *sfv.SFV) error {
+	for _, c := range sfv.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
 	}
-	return os.Remove(u.sfv.Path)
+	return os.Remove(sfv.Path)
 }
 
-func (u *unpacker) fileCount() (int, int) {
+func fileCount(sfv *sfv.SFV) (int, int) {
 	exists := 0
-	for _, c := range u.sfv.Checksums {
+	for _, c := range sfv.Checksums {
 		if c.IsExist() {
 			exists++
 		}
 	}
-	return exists, len(u.sfv.Checksums)
+	return exists, len(sfv.Checksums)
 }
 
-func (u *unpacker) verify() error {
-	for _, c := range u.sfv.Checksums {
+func verify(sfv *sfv.SFV) error {
+	for _, c := range sfv.Checksums {
 		ok, err := c.Verify()
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return errors.Errorf("%s: failed checksum: %s", u.sfv.Path, c.Filename)
+			return errors.Errorf("%s: failed checksum: %s", sfv.Path, c.Filename)
 		}
 	}
 	return nil
 }
 
-func (u *unpacker) Run(removeRARs bool) error {
-	if exists, total := u.fileCount(); exists != total {
-		return errors.Errorf("incomplete: %s: %d/%d files", u.dir, exists, total)
+func cmdFrom(tmpl string, ev event) (*exec.Cmd, error) {
+	t, err := template.New("cmd").Parse(tmpl)
+	if err != nil {
+		return nil, err
 	}
-	if err := u.verify(); err != nil {
-		return errors.Wrapf(err, "verification failed: %s", u.dir)
+	var b bytes.Buffer
+	if err := t.Execute(&b, ev); err != nil {
+		return nil, err
 	}
-	if err := u.unpack(u.name); err != nil {
-		return errors.Wrapf(err, "unpacking failed: %s", u.dir)
+	argv := strings.Split(b.String(), " ")
+	if len(argv) == 0 {
+		return nil, errors.New("template compiled to empty command")
 	}
-	if removeRARs {
-		if err := u.remove(); err != nil {
-			return errors.Wrapf(err, "removal failed: %s", u.dir)
-		}
-	}
-	return nil
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Dir = ev.Dir
+	return cmd, nil
 }
 
-func postProcess(u *unpacker, command string) error {
+func runCmd(command string, e event) error {
 	if command == "" {
 		return nil
 	}
-	cmd, err := newCmd(command, archive{
-		Name: u.name,
-		Base: filepath.Base(u.dir),
-		Dir:  u.dir,
-	})
+	cmd, err := cmdFrom(command, e)
 	if err != nil {
 		return err
 	}
@@ -216,17 +199,29 @@ func postProcess(u *unpacker, command string) error {
 	return nil
 }
 
-func Unpack(name, postCommand string, remove bool) error {
-	path := filepath.Dir(name)
-	u, err := newUnpacker(path)
+func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	ev, err := eventFrom(name)
 	if err != nil {
 		return err
 	}
-	if err := u.Run(remove); err != nil {
-		return err
+	if exists, total := fileCount(ev.sfv); exists != total {
+		return errors.Errorf("incomplete: %s: %d/%d files", ev.Dir, exists, total)
 	}
-	if err := postProcess(u, postCommand); err != nil {
-		return errors.Wrapf(err, "post-process command failed: %s", path)
+	if err := verify(ev.sfv); err != nil {
+		return errors.Wrapf(err, "verification failed: %s", ev.Dir)
+	}
+	if err := unpack(ev.Name); err != nil {
+		return errors.Wrapf(err, "unpacking failed: %s", ev.Dir)
+	}
+	if removeRARs {
+		if err := remove(ev.sfv); err != nil {
+			return errors.Wrapf(err, "removal failed: %s", ev.Dir)
+		}
+	}
+	if err := runCmd(postCommand, ev); err != nil {
+		return errors.Wrapf(err, "post-process command failed: %s", ev.Dir)
 	}
 	return nil
 }

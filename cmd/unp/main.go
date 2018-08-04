@@ -37,6 +37,6 @@ func main() {
 	}
 
 	log := log.New(os.Stderr, "unp: ", 0)
-	w := watcher.New(cfg, rar.Unpack, log)
+	w := watcher.New(cfg, rar.NewHandler(), log)
 	w.Start()
 }

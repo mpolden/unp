@@ -15,20 +15,22 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-type OnFile func(string, string, bool) error
-
-type watcher struct {
-	config Config
-	onFile OnFile
-	events chan notify.EventInfo
-	signal chan os.Signal
-	done   chan bool
-	log    *log.Logger
-	mu     sync.Mutex
-	wg     sync.WaitGroup
+type Handler interface {
+	Handle(filename, postCommand string, remove bool) error
 }
 
-func (w *watcher) handle(name string) error {
+type Watcher struct {
+	config  Config
+	handler Handler
+	events  chan notify.EventInfo
+	signal  chan os.Signal
+	done    chan bool
+	log     *log.Logger
+	mu      sync.Mutex
+	wg      sync.WaitGroup
+}
+
+func (w *Watcher) handle(name string) error {
 	p, ok := w.config.findPath(name)
 	if !ok {
 		return errors.Errorf("no configured path found: %s", name)
@@ -47,10 +49,10 @@ func (w *watcher) handle(name string) error {
 		}
 		return errors.Errorf("no match found: %s", name)
 	}
-	return w.onFile(name, p.PostCommand, p.Remove)
+	return w.handler.Handle(name, p.PostCommand, p.Remove)
 }
 
-func (w *watcher) watch() {
+func (w *Watcher) watch() {
 	for _, path := range w.config.Paths {
 		rpath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(rpath, w.events, writeFlag); err != nil {
@@ -61,7 +63,7 @@ func (w *watcher) watch() {
 	}
 }
 
-func (w *watcher) reload() {
+func (w *Watcher) reload() {
 	cfg, err := ReadConfig(w.config.filename)
 	if err == nil {
 		notify.Stop(w.events)
@@ -72,7 +74,7 @@ func (w *watcher) reload() {
 	}
 }
 
-func (w *watcher) rescan() {
+func (w *Watcher) rescan() {
 	for _, p := range w.config.Paths {
 		err := filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -92,7 +94,7 @@ func (w *watcher) rescan() {
 	}
 }
 
-func (w *watcher) readSignal() {
+func (w *Watcher) readSignal() {
 	for {
 		select {
 		case <-w.done:
@@ -115,7 +117,7 @@ func (w *watcher) readSignal() {
 	}
 }
 
-func (w *watcher) readEvent() {
+func (w *Watcher) readEvent() {
 	for {
 		select {
 		case <-w.done:
@@ -130,7 +132,7 @@ func (w *watcher) readEvent() {
 	}
 }
 
-func (w *watcher) goServe() {
+func (w *Watcher) goServe() {
 	w.wg.Add(2)
 	go func() {
 		defer w.wg.Done()
@@ -142,30 +144,30 @@ func (w *watcher) goServe() {
 	}()
 }
 
-func (w *watcher) Start() {
+func (w *Watcher) Start() {
 	w.goServe()
 	w.watch()
 	w.wg.Wait()
 }
 
-func (w *watcher) Stop() {
+func (w *Watcher) Stop() {
 	notify.Stop(w.events)
 	w.done <- true
 	w.done <- true
 }
 
-func New(cfg Config, onFile OnFile, log *log.Logger) *watcher {
+func New(cfg Config, handler Handler, log *log.Logger) *Watcher {
 	// Buffer events so that we don't miss any
 	events := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sig)
-	return &watcher{
-		config: cfg,
-		events: events,
-		log:    log,
-		onFile: onFile,
-		signal: sig,
-		done:   done,
+	return &Watcher{
+		config:  cfg,
+		events:  events,
+		log:     log,
+		handler: handler,
+		signal:  sig,
+		done:    done,
 	}
 }

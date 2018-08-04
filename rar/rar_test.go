@@ -10,42 +10,40 @@ import (
 	"github.com/mpolden/sfv"
 )
 
-func TestNewCmd(t *testing.T) {
+func TestCmdFrom(t *testing.T) {
 	tmpl := "tar -xf {{.Name}} {{.Base}} {{.Dir}}"
-	values := archive{
+	values := event{
 		Name: "/foo/bar/baz.rar",
 		Base: "baz.rar",
 		Dir:  "/foo/bar",
 	}
-
-	cmd, err := newCmd(tmpl, values)
+	cmd, err := cmdFrom(tmpl, values)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cmd.Dir != values.Dir {
-		t.Fatalf("Expected %s, got %s", values.Dir, cmd.Dir)
+		t.Fatalf("want %q, got %q", values.Dir, cmd.Dir)
 	}
 	if !strings.Contains(cmd.Path, string(os.PathSeparator)) {
-		t.Fatalf("Expected %s to contain a path separator", cmd.Path)
+		t.Fatalf("want %q to contain a path separator", cmd.Path)
 	}
 	if cmd.Args[0] != "tar" {
-		t.Fatalf("Expected 'tar', got '%s'", cmd.Args[0])
+		t.Fatalf("want %q, got %q", "tar", cmd.Args[0])
 	}
 	if cmd.Args[1] != "-xf" {
-		t.Fatalf("Expected '-xf', got '%s'", cmd.Args[1])
+		t.Fatalf("want %q, got %q", "-xf", cmd.Args[1])
 	}
 	if cmd.Args[2] != values.Name {
-		t.Fatalf("Expected '%s', got '%s'", values.Name, cmd.Args[2])
+		t.Fatalf("want %q, got %q", values.Name, cmd.Args[2])
 	}
 	if cmd.Args[3] != values.Base {
-		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[3])
+		t.Fatalf("want %q, got %q", values.Base, cmd.Args[3])
 	}
 	if cmd.Args[4] != values.Dir {
-		t.Fatalf("Expected '%s', got '%s'", values.Base, cmd.Args[4])
+		t.Fatalf("want %q, got %q", values.Base, cmd.Args[4])
 	}
-
-	if _, err := newCmd("tar -xf {{.Bar}}", values); err == nil {
-		t.Fatal("Expected error")
+	if _, err := cmdFrom("tar -xf {{.Bar}}", values); err == nil {
+		t.Fatal("want error")
 	}
 }
 
@@ -89,7 +87,7 @@ func TestFindFirstRAR(t *testing.T) {
 	}
 }
 
-func TestUnpack(t *testing.T) {
+func TestHandle(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +113,8 @@ func TestUnpack(t *testing.T) {
 	}()
 
 	// Trigger unpacking by passing in a file contained in testdata
-	if err := Unpack(tests[0].file, "", false); err != nil {
+	h := NewHandler()
+	if err := h.Handle(tests[0].file, "", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -132,5 +131,4 @@ func TestUnpack(t *testing.T) {
 			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
 	}
-
 }

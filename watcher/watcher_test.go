@@ -11,6 +11,30 @@ import (
 	"time"
 )
 
+type testHandler struct {
+	wantFile string
+	files    []string
+}
+
+func (h *testHandler) Handle(filename, postCommand string, remove bool) error {
+	if h.wantFile != "" && filename != h.wantFile {
+		return fmt.Errorf("unhandled file: %q", filename)
+	}
+	h.files = append(h.files, filename)
+	return nil
+}
+
+func (h *testHandler) awaitFile(file string) (bool, error) {
+	ts := time.Now()
+	for len(h.files) == 0 {
+		time.Sleep(10 * time.Millisecond)
+		if time.Since(ts) > 2*time.Second {
+			return false, fmt.Errorf("timed out waiting for file notification")
+		}
+	}
+	return h.files[0] == file, nil
+}
+
 func tempDir() string {
 	dir, err := ioutil.TempDir("", "unp")
 	if err != nil {
@@ -23,35 +47,21 @@ func tempDir() string {
 	return path
 }
 
-func testWatcher(dir string, onFile OnFile) *watcher {
+func testWatcher(dir string, handler Handler) *Watcher {
 	cfg := Config{
 		BufferSize: 10,
 		Paths:      []Path{{Name: dir, MaxDepth: 100, Patterns: []string{"*"}}},
 	}
 	log := log.New(ioutil.Discard, "", 0)
-	return New(cfg, onFile, log)
-}
-
-func awaitFile(files *[]string, file string) (bool, error) {
-	ts := time.Now()
-	for len(*files) == 0 {
-		time.Sleep(10 * time.Millisecond)
-		if time.Since(ts) > 2*time.Second {
-			return false, fmt.Errorf("timed out waiting for file notification")
-		}
-	}
-	return (*files)[0] == file, nil
+	return New(cfg, handler, log)
 }
 
 func TestWatching(t *testing.T) {
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 
-	var files []string
-	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
-		files = append(files, name)
-		return nil
-	})
+	h := testHandler{}
+	w := testWatcher(dir, &h)
 	w.goServe()
 	w.watch()
 	defer w.Stop()
@@ -61,12 +71,12 @@ func TestWatching(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := awaitFile(&files, f)
+	ok, err := h.awaitFile(f)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !ok {
-		t.Errorf("want %s, got %s", f, files[0])
+		t.Errorf("want %s, got %s", f, h.files[0])
 	}
 }
 
@@ -77,13 +87,8 @@ func TestRescanning(t *testing.T) {
 	f1 := filepath.Join(dir, "foo")
 	f2 := filepath.Join(dir, "bar")
 	var files []string
-	w := testWatcher(dir, func(name, postCommand string, remove bool) error {
-		if name != f1 {
-			return fmt.Errorf("unhandled file: %s", name)
-		}
-		files = append(files, name)
-		return nil
-	})
+	h := &testHandler{wantFile: f1}
+	w := testWatcher(dir, h)
 	defer w.Stop()
 
 	// Files are written before watcher is started
@@ -104,7 +109,7 @@ func TestRescanning(t *testing.T) {
 	// USR1 triggers rescan
 	w.signal <- syscall.SIGUSR1
 
-	ok, err := awaitFile(&files, f1)
+	ok, err := h.awaitFile(f1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,10 +120,8 @@ func TestRescanning(t *testing.T) {
 
 func TestReloading(t *testing.T) {
 	var files []string
-	w := testWatcher("", func(name, postCommand string, remove bool) error {
-		files = append(files, name)
-		return nil
-	})
+	h := &testHandler{}
+	w := testWatcher("", h)
 	defer w.Stop()
 
 	tmp, err := ioutil.TempFile("", "unp")
@@ -159,7 +162,7 @@ func TestReloading(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok, err := awaitFile(&files, f)
+	ok, err := h.awaitFile(f)
 	if err != nil {
 		t.Fatal(err)
 	}
