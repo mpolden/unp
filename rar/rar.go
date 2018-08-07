@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/mpolden/sfv"
 	"github.com/nwaples/rardecode"
@@ -26,10 +27,10 @@ type event struct {
 }
 
 type Handler struct {
-	mu sync.Mutex
+	mu    sync.Mutex
+	cache map[string]bool
+	done  chan bool
 }
-
-func NewHandler() *Handler { return &Handler{} }
 
 func eventFrom(filename string) (event, error) {
 	dir := filepath.Dir(filename)
@@ -142,29 +143,6 @@ func remove(sfv *sfv.SFV) error {
 	return os.Remove(sfv.Path)
 }
 
-func fileCount(sfv *sfv.SFV) (int, int) {
-	exists := 0
-	for _, c := range sfv.Checksums {
-		if c.IsExist() {
-			exists++
-		}
-	}
-	return exists, len(sfv.Checksums)
-}
-
-func verify(sfv *sfv.SFV) error {
-	for _, c := range sfv.Checksums {
-		ok, err := c.Verify()
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return errors.Errorf("%s: failed checksum: %s", sfv.Path, c.Filename)
-		}
-	}
-	return nil
-}
-
 func cmdFrom(tmpl string, ev event) (*exec.Cmd, error) {
 	t, err := template.New("cmd").Parse(tmpl)
 	if err != nil {
@@ -199,6 +177,60 @@ func runCmd(command string, e event) error {
 	return nil
 }
 
+func NewHandler() *Handler { return NewHandlerWithInterval(time.Minute) }
+
+func NewHandlerWithInterval(d time.Duration) *Handler {
+	h := &Handler{
+		cache: make(map[string]bool),
+		done:  make(chan bool),
+	}
+	ticker := time.NewTicker(d)
+	go func() {
+		for {
+			select {
+			case <-h.done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				h.pruneCache()
+			}
+		}
+
+	}()
+	return h
+}
+
+func (h *Handler) verify(sfv *sfv.SFV) (int, int, error) {
+	passed := 0
+	for _, c := range sfv.Checksums {
+		ok := h.cache[c.Path]
+		if !ok && c.IsExist() {
+			var err error
+			ok, err = c.Verify()
+			if err != nil {
+				return 0, 0, err
+			}
+			h.cache[c.Path] = ok
+		}
+		if ok {
+			passed++
+		}
+	}
+	return passed, len(sfv.Checksums), nil
+}
+
+func (h *Handler) pruneCache() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for path := range h.cache {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			delete(h.cache, path)
+		}
+	}
+}
+
+func (h *Handler) Stop() { h.done <- true }
+
 func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -206,11 +238,12 @@ func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 	if err != nil {
 		return err
 	}
-	if exists, total := fileCount(ev.sfv); exists != total {
-		return errors.Errorf("incomplete: %s: %d/%d files", ev.Dir, exists, total)
-	}
-	if err := verify(ev.sfv); err != nil {
+	passed, total, err := h.verify(ev.sfv)
+	if err != nil {
 		return errors.Wrapf(err, "verification failed: %s", ev.Dir)
+	}
+	if passed != total {
+		return errors.Errorf("incomplete: %s: %d/%d files", ev.Dir, passed, total)
 	}
 	if err := unpack(ev.Name); err != nil {
 		return errors.Wrapf(err, "unpacking failed: %s", ev.Dir)

@@ -1,6 +1,7 @@
 package rar
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,20 @@ import (
 
 	"github.com/mpolden/sfv"
 )
+
+func symlink(t *testing.T, oldname, newname string) {
+	if err := os.Symlink(oldname, newname); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func testdataDir(t *testing.T) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(wd, "testdata")
+}
 
 func TestCmdFrom(t *testing.T) {
 	tmpl := "tar -xf {{.Name}} {{.Base}} {{.Dir}}"
@@ -88,22 +103,18 @@ func TestFindFirstRAR(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	testdata := filepath.Join(wd, "testdata")
+	td := testdataDir(t)
 
 	var tests = []struct {
 		file  string
 		mtime int64
 	}{
-		{filepath.Join(testdata, "test1"), 1498246676},
-		{filepath.Join(testdata, "test2"), 1498246678},
-		{filepath.Join(testdata, "test3"), 1498246680},
-		{filepath.Join(testdata, "test", "test4"), 1498316526},
-		{filepath.Join(testdata, "test"), 1498316526},
-		{filepath.Join(testdata, "nested.rar"), 1498246697},
+		{filepath.Join(td, "test1"), 1498246676},
+		{filepath.Join(td, "test2"), 1498246678},
+		{filepath.Join(td, "test3"), 1498246680},
+		{filepath.Join(td, "test", "test4"), 1498316526},
+		{filepath.Join(td, "test"), 1498316526},
+		{filepath.Join(td, "nested.rar"), 1498246697},
 	}
 
 	defer func() {
@@ -130,5 +141,53 @@ func TestHandle(t *testing.T) {
 		if got := fi.ModTime().Unix() + int64(offset); got != tt.mtime {
 			t.Errorf("#%d: want mtime = %d, got %d for file %s", i, tt.mtime, got, tt.file)
 		}
+	}
+}
+
+func TestHandleIncomplete(t *testing.T) {
+	var (
+		td       = testdataDir(t)
+		realRAR1 = filepath.Join(td, "test.rar")
+		realRAR2 = filepath.Join(td, "test.r00")
+		realSFV  = filepath.Join(td, "test.sfv")
+	)
+	tempdir, err := ioutil.TempDir("", "unp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempdir)
+
+	var (
+		sfv  = filepath.Join(tempdir, "test.sfv")
+		rar1 = filepath.Join(tempdir, "test.rar")
+		rar2 = filepath.Join(tempdir, "test.r00")
+	)
+
+	symlink(t, realSFV, sfv)
+	symlink(t, realRAR1, rar1)
+	symlink(t, realRAR2, rar2)
+
+	h := NewHandlerWithInterval(time.Hour)
+	defer h.Stop()
+	want := "incomplete: " + tempdir + ": 2/3 files"
+	if err := h.Handle(rar1, "", false); err.Error() != want {
+		t.Errorf("want err = %q, got %q", want, err.Error())
+	}
+
+	// Removing a file keeps the cached checksum
+	if err := os.Remove(rar1); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.Handle(rar1, "", false); err.Error() != want {
+		t.Errorf("want err = %q, got %q", want, err.Error())
+	}
+	if want, got := 2, len(h.cache); want != got {
+		t.Errorf("want len = %d, got %d", want, got)
+	}
+
+	// ... until cache is pruned
+	h.pruneCache()
+	if want, got := 1, len(h.cache); want != got {
+		t.Errorf("want len = %d, got %d", want, got)
 	}
 }

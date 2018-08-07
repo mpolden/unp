@@ -24,6 +24,8 @@ func (h *testHandler) Handle(filename, postCommand string, remove bool) error {
 	return nil
 }
 
+func (h *testHandler) Stop() {}
+
 func (h *testHandler) awaitFile(file string) (bool, error) {
 	ts := time.Now()
 	for len(h.files) == 0 {
