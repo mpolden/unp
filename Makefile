@@ -1,4 +1,4 @@
-all: deps test vet install
+all: test vet install
 
 fmt:
 	go fmt ./...
@@ -9,9 +9,5 @@ test:
 vet:
 	go vet ./...
 
-deps:
-	go get -d -v ./...
-
 install:
 	go install ./...
-
