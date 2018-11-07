@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/mpolden/sfv"
 	"github.com/nwaples/rardecode"
@@ -134,11 +133,12 @@ func unpack(filename string) error {
 	return nil
 }
 
-func remove(sfv *sfv.SFV) error {
+func (h *Handler) remove(sfv *sfv.SFV) error {
 	for _, c := range sfv.Checksums {
 		if err := os.Remove(c.Path); err != nil {
 			return err
 		}
+		delete(h.cache, c.Path)
 	}
 	return os.Remove(sfv.Path)
 }
@@ -177,28 +177,7 @@ func runCmd(command string, e event) error {
 	return nil
 }
 
-func NewHandler() *Handler { return NewHandlerWithInterval(time.Minute) }
-
-func NewHandlerWithInterval(d time.Duration) *Handler {
-	h := &Handler{
-		cache: make(map[string]bool),
-		done:  make(chan bool),
-	}
-	ticker := time.NewTicker(d)
-	go func() {
-		for {
-			select {
-			case <-h.done:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				h.pruneCache()
-			}
-		}
-
-	}()
-	return h
-}
+func NewHandler() *Handler { return &Handler{cache: make(map[string]bool)} }
 
 func (h *Handler) verify(sfv *sfv.SFV) (int, int, error) {
 	passed := 0
@@ -219,18 +198,6 @@ func (h *Handler) verify(sfv *sfv.SFV) (int, int, error) {
 	return passed, len(sfv.Checksums), nil
 }
 
-func (h *Handler) pruneCache() {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for path := range h.cache {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			delete(h.cache, path)
-		}
-	}
-}
-
-func (h *Handler) Stop() { h.done <- true }
-
 func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -249,7 +216,7 @@ func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 		return errors.Wrapf(err, "unpacking failed: %s", ev.Dir)
 	}
 	if removeRARs {
-		if err := remove(ev.sfv); err != nil {
+		if err := h.remove(ev.sfv); err != nil {
 			return errors.Wrapf(err, "removal failed: %s", ev.Dir)
 		}
 	}

@@ -17,7 +17,6 @@ import (
 
 type Handler interface {
 	Handle(filename, postCommand string, remove bool) error
-	Stop()
 }
 
 type Watcher struct {
@@ -152,7 +151,6 @@ func (w *Watcher) Start() {
 }
 
 func (w *Watcher) Stop() {
-	w.handler.Stop()
 	notify.Stop(w.events)
 	w.done <- true
 	w.done <- true

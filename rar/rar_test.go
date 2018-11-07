@@ -17,7 +17,7 @@ func symlink(t *testing.T, oldname, newname string) {
 	}
 }
 
-func testdataDir(t *testing.T) string {
+func testDir(t *testing.T) string {
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +103,7 @@ func TestFindFirstRAR(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	td := testdataDir(t)
+	td := testDir(t)
 
 	var tests = []struct {
 		file  string
@@ -145,12 +145,6 @@ func TestHandle(t *testing.T) {
 }
 
 func TestHandleIncomplete(t *testing.T) {
-	var (
-		td       = testdataDir(t)
-		realRAR1 = filepath.Join(td, "test.rar")
-		realRAR2 = filepath.Join(td, "test.r00")
-		realSFV  = filepath.Join(td, "test.sfv")
-	)
 	tempdir, err := ioutil.TempDir("", "unp")
 	if err != nil {
 		t.Fatal(err)
@@ -158,36 +152,38 @@ func TestHandleIncomplete(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	var (
-		sfv  = filepath.Join(tempdir, "test.sfv")
-		rar1 = filepath.Join(tempdir, "test.rar")
-		rar2 = filepath.Join(tempdir, "test.r00")
+		td       = testDir(t)
+		realRAR1 = filepath.Join(td, "test.rar")
+		realRAR2 = filepath.Join(td, "test.r00")
+		realRAR3 = filepath.Join(td, "test.r01")
+		realSFV  = filepath.Join(td, "test.sfv")
+		rar1     = filepath.Join(tempdir, filepath.Base(realRAR1))
+		rar2     = filepath.Join(tempdir, filepath.Base(realRAR2))
+		rar3     = filepath.Join(tempdir, filepath.Base(realRAR3))
+		sfv      = filepath.Join(tempdir, filepath.Base(realSFV))
 	)
 
 	symlink(t, realSFV, sfv)
 	symlink(t, realRAR1, rar1)
 	symlink(t, realRAR2, rar2)
 
-	h := NewHandlerWithInterval(time.Hour)
-	defer h.Stop()
-	want := "incomplete: " + tempdir + ": 2/3 files"
-	if err := h.Handle(rar1, "", false); err.Error() != want {
-		t.Errorf("want err = %q, got %q", want, err.Error())
-	}
+	h := NewHandler()
 
-	// Removing a file keeps the cached checksum
-	if err := os.Remove(rar1); err != nil {
-		t.Fatal(err)
-	}
-	if err := h.Handle(rar1, "", false); err.Error() != want {
+	// Verified checksums are cached while RAR set is incomplete
+	want := "incomplete: " + tempdir + ": 2/3 files"
+	if err := h.Handle(rar1, "", true); err.Error() != want {
 		t.Errorf("want err = %q, got %q", want, err.Error())
 	}
 	if want, got := 2, len(h.cache); want != got {
 		t.Errorf("want len = %d, got %d", want, got)
 	}
 
-	// ... until cache is pruned
-	h.pruneCache()
-	if want, got := 1, len(h.cache); want != got {
-		t.Errorf("want len = %d, got %d", want, got)
+	// Completing the set clears cache
+	symlink(t, realRAR3, rar3)
+	if err := h.Handle(rar3, "", true); err != nil {
+		t.Fatal(err)
+	}
+	if want, got := 0, len(h.cache); want != got {
+		t.Errorf("want %d cache entries, got %d", want, got)
 	}
 }
