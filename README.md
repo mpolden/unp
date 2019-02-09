@@ -2,8 +2,10 @@
 
 [![Build Status](https://travis-ci.org/mpolden/unp.svg)](https://travis-ci.org/mpolden/unp)
 
-`unp` is a small server that monitors directories, verifies SFV files and
-unpacks archives automatically.
+`unp` monitors a list of configured directories and automatically verifies and
+unpacks multi-volume RAR archives as they are written. A combination of file
+system events and SFV files are used to determine when archives should be
+unpacked.
 
 ## Usage
 
@@ -44,9 +46,9 @@ Help Options:
 
 ## Configuration options
 
-`BufferSize` sets the maximum number of file system to queue. This should be
-large enough to store events that occur while unpacking files. The default value
-is `1024`.
+`BufferSize` sets the maximum number of file system events to queue in memory.
+This should be large enough to store any events that may occur while archives
+are unpacked. The default value is `1024`.
 
 `Paths` is an array of paths to watch.
 
@@ -65,7 +67,8 @@ should be ignored.
 `Patterns` sets the wildcard patterns that a file needs to match to be able to
 trigger an event.
 
-`Remove` determines whether archive files should be deleted after unpacking.
+`Remove` determines whether archives and SFV files should be deleted after
+unpacking.
 
 `PostCommand` is an optional command to be run after unpacking completes.
 
