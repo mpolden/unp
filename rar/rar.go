@@ -28,7 +28,6 @@ type event struct {
 type Handler struct {
 	mu    sync.Mutex
 	cache map[string]bool
-	done  chan bool
 }
 
 func eventFrom(filename string) (event, error) {
