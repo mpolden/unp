@@ -2,6 +2,7 @@ package rar
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/mpolden/sfv"
 	"github.com/nwaples/rardecode"
-	"github.com/pkg/errors"
 )
 
 var rarPartRE = regexp.MustCompile(`\.part0*(\d+)\.rar$`)
@@ -64,7 +64,7 @@ func findFirstRAR(s *sfv.SFV) (string, error) {
 			return c.Path, nil
 		}
 	}
-	return "", errors.Errorf("no rar found in %s", s.Path)
+	return "", fmt.Errorf("no rar found in %s", s.Path)
 }
 
 func chtimes(name string, header *rardecode.FileHeader) error {
@@ -77,7 +77,7 @@ func chtimes(name string, header *rardecode.FileHeader) error {
 func unpack(filename string) error {
 	r, err := rardecode.OpenReader(filename, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", filename)
+		return fmt.Errorf("failed to open %s: %w", filename, err)
 	}
 	dir := filepath.Dir(filename)
 	for {
@@ -110,7 +110,7 @@ func unpack(filename string) error {
 		// Unpack file
 		f, err := os.Create(name)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create file: %s", name)
+			return fmt.Errorf("failed to create file: %s: %w", name, err)
 		}
 		if _, err = io.Copy(f, r); err != nil {
 			return err
@@ -153,7 +153,7 @@ func cmdFrom(tmpl string, ev event) (*exec.Cmd, error) {
 	}
 	argv := strings.Split(b.String(), " ")
 	if len(argv) == 0 {
-		return nil, errors.New("template compiled to empty command")
+		return nil, fmt.Errorf("template compiled to empty command")
 	}
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = ev.Dir
@@ -171,7 +171,7 @@ func runCmd(command string, e event) error {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "stderr: %q", stderr.String())
+		return fmt.Errorf("stderr: %q: %w", stderr.String(), err)
 	}
 	return nil
 }
@@ -206,21 +206,21 @@ func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 	}
 	passed, total, err := h.verify(ev.sfv)
 	if err != nil {
-		return errors.Wrapf(err, "verification failed: %s", ev.Dir)
+		return fmt.Errorf("verification failed: %s: %w", ev.Dir, err)
 	}
 	if passed != total {
-		return errors.Errorf("incomplete: %s: %d/%d files", ev.Dir, passed, total)
+		return fmt.Errorf("incomplete: %s: %d/%d files", ev.Dir, passed, total)
 	}
 	if err := unpack(ev.Name); err != nil {
-		return errors.Wrapf(err, "unpacking failed: %s", ev.Dir)
+		return fmt.Errorf("unpacking failed: %s: %w", ev.Dir, err)
 	}
 	if removeRARs {
 		if err := h.remove(ev.sfv); err != nil {
-			return errors.Wrapf(err, "removal failed: %s", ev.Dir)
+			return fmt.Errorf("removal failed: %s: %w", ev.Dir, err)
 		}
 	}
 	if err := runCmd(postCommand, ev); err != nil {
-		return errors.Wrapf(err, "post-process command failed: %s", ev.Dir)
+		return fmt.Errorf("post-process command failed: %s: %w", ev.Dir, err)
 	}
 	return nil
 }

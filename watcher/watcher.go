@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	"log"
 
 	"github.com/mpolden/unp/pathutil"
-	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
 )
 
@@ -33,21 +33,21 @@ type Watcher struct {
 func (w *Watcher) handle(name string) error {
 	p, ok := w.config.findPath(name)
 	if !ok {
-		return errors.Errorf("no configured path found: %s", name)
+		return fmt.Errorf("no configured path found: %s", name)
 	}
 	if p.SkipHidden && pathutil.ContainsHidden(name) {
-		return errors.Errorf("hidden parent dir or file: %s", name)
+		return fmt.Errorf("hidden parent dir or file: %s", name)
 	}
 	depth := pathutil.Depth(name)
 	if !p.validDepth(depth) {
-		return errors.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
+		return fmt.Errorf("incorrect depth: %s depth=%d min=%d max=%d",
 			name, depth, p.MinDepth, p.MaxDepth)
 	}
 	if match, err := p.match(filepath.Base(name)); !match {
 		if err != nil {
 			return err
 		}
-		return errors.Errorf("no match found: %s", name)
+		return fmt.Errorf("no match found: %s", name)
 	}
 	return w.handler.Handle(name, p.PostCommand, p.Remove)
 }

@@ -2,14 +2,13 @@ package watcher
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type Config struct {
@@ -33,7 +32,7 @@ func (p *Path) match(name string) (bool, error) {
 	for _, pattern := range p.Patterns {
 		matched, err := filepath.Match(pattern, name)
 		if err != nil {
-			return false, errors.Wrap(err, pattern)
+			return false, fmt.Errorf("%s: %w", pattern, err)
 		}
 		if matched {
 			return true, nil
@@ -113,10 +112,10 @@ func (c *Config) validate() error {
 			return err
 		}
 		if !fi.IsDir() {
-			return errors.Errorf("not a directory: %s", p.Name)
+			return fmt.Errorf("not a directory: %s", p.Name)
 		}
 		if p.MinDepth > p.MaxDepth {
-			return errors.New("min depth must be <= max depth")
+			return fmt.Errorf("min depth must be <= max depth")
 		}
 		if _, err := p.match("foo.bar"); err != nil {
 			return err
