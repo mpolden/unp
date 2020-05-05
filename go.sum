@@ -1,5 +1,3 @@
-github.com/jessevdk/go-flags v1.4.0 h1:4IU2WS7AumrZ/40jfhf4QVDMsQwqA7VEHozFRrGARJA=
-github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/mpolden/sfv v0.9.0 h1:POHC8Js30xxOgMvgNLUEkJZh2fhOtx5NwK1pj7g9VvQ=
 github.com/mpolden/sfv v0.9.0/go.mod h1:EymWriacbRB9ZKQ21Vj+ahcIV8aq8G0FNluX6UNCcVk=
 github.com/nwaples/rardecode v1.1.0 h1:vSxaY8vQhOcVr4mm5e8XllHWTiM4JF507A0Katqw7MQ=
