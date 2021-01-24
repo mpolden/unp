@@ -1,6 +1,6 @@
 # unp
 
-[![Build Status](https://travis-ci.org/mpolden/unp.svg)](https://travis-ci.org/mpolden/unp)
+![Build Status](https://github.com/mpolden/unp/workflows/ci/badge.svg)
 
 `unp` monitors a list of configured directories and automatically verifies and
 unpacks multi-volume RAR archives as they are written. A combination of file
