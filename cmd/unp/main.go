@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/mpolden/unp/rar"
 	"github.com/mpolden/unp/watcher"
 )
 
@@ -30,6 +29,6 @@ func main() {
 	}
 
 	log := log.New(os.Stderr, "unp: ", 0)
-	w := watcher.New(cfg, rar.NewHandler(), log)
+	w := watcher.New(cfg, log)
 	w.Start()
 }

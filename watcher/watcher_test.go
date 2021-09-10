@@ -2,7 +2,7 @@ package watcher
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,30 +37,20 @@ func (h *testHandler) awaitFile(file string) (bool, error) {
 	return h.files[0] == file, nil
 }
 
-func tempDir() string {
-	dir, err := ioutil.TempDir("", "unp")
-	if err != nil {
-		panic(err)
-	}
-	path, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		panic(err)
-	}
-	return path
-}
-
 func testWatcher(dir string, handler Handler) *Watcher {
 	cfg := Config{
 		BufferSize: 10,
-		Paths:      []Path{{Name: dir, MaxDepth: 100, Patterns: []string{"*"}}},
+		Paths:      []Path{{handler: handler, Name: dir, MaxDepth: 100, Patterns: []string{"*"}}},
 	}
-	log := log.New(ioutil.Discard, "", 0)
-	return New(cfg, handler, log)
+	log := log.New(io.Discard, "", 0)
+	return New(cfg, log)
 }
 
 func TestWatching(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	h := testHandler{}
 	w := testWatcher(dir, &h)
@@ -69,7 +59,7 @@ func TestWatching(t *testing.T) {
 	defer w.Stop()
 
 	f := filepath.Join(dir, "foo")
-	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
+	if err := os.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -83,8 +73,7 @@ func TestWatching(t *testing.T) {
 }
 
 func TestRescanning(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	f1 := filepath.Join(dir, "foo")
 	f2 := filepath.Join(dir, "bar")
@@ -94,10 +83,10 @@ func TestRescanning(t *testing.T) {
 	defer w.Stop()
 
 	// Files are written before watcher is started
-	if err := ioutil.WriteFile(f1, []byte{0}, 0644); err != nil {
+	if err := os.WriteFile(f1, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(f2, []byte{0}, 0644); err != nil {
+	if err := os.WriteFile(f2, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -126,24 +115,22 @@ func TestReloading(t *testing.T) {
 	w := testWatcher("", h)
 	defer w.Stop()
 
-	tmp, err := ioutil.TempFile("", "unp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(tmp.Name())
-	w.config = Config{filename: tmp.Name()}
+	configFile := filepath.Join(t.TempDir(), "config")
+	w.config = Config{filename: configFile}
 
 	// Start serving with empty config
 	w.goServe()
 	w.watch()
 
 	// Create a new directory
-	dir := tempDir()
-	defer os.RemoveAll(dir)
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Write config that references directory
 	cfg := fmt.Sprintf(`{"Paths": [{"Name": "%s", "Patterns": ["*"], "MaxDepth": 100}]}`, dir)
-	if err := ioutil.WriteFile(tmp.Name(), []byte(cfg), 0644); err != nil {
+	if err := os.WriteFile(configFile, []byte(cfg), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -159,11 +146,13 @@ func TestReloading(t *testing.T) {
 		}
 	}
 
+	// Override handler
+	w.config.Paths[0].handler = h
+
 	f := filepath.Join(dir, "foo")
-	if err := ioutil.WriteFile(f, []byte{0}, 0644); err != nil {
+	if err := os.WriteFile(f, []byte{0}, 0644); err != nil {
 		t.Fatal(err)
 	}
-
 	ok, err := h.awaitFile(f)
 	if err != nil {
 		t.Fatal(err)

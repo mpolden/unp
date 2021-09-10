@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/mpolden/unp/rar"
 )
 
 type Config struct {
@@ -20,6 +22,8 @@ type Config struct {
 
 type Path struct {
 	Name        string
+	Handler     string
+	handler     Handler
 	MaxDepth    int
 	MinDepth    int
 	SkipHidden  bool
@@ -67,7 +71,7 @@ func readConfig(r io.Reader) (Config, error) {
 	if cfg.BufferSize <= 0 {
 		cfg.BufferSize = 1024
 	}
-	if err := cfg.validate(); err != nil {
+	if err := cfg.load(); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
@@ -105,8 +109,8 @@ func (c *Config) JSON() ([]byte, error) {
 	return json.MarshalIndent(c, "", "  ")
 }
 
-func (c *Config) validate() error {
-	for _, p := range c.Paths {
+func (c *Config) load() error {
+	for i, p := range c.Paths {
 		fi, err := os.Stat(p.Name)
 		if err != nil {
 			return err
@@ -122,6 +126,14 @@ func (c *Config) validate() error {
 		}
 		if err := isExecutable(p.PostCommand); err != nil {
 			return err
+		}
+		switch p.Handler {
+		case "rar", "":
+			c.Paths[i].handler = rar.NewHandler()
+		case "script":
+			c.Paths[i].handler = &scriptHandler{}
+		default:
+			return fmt.Errorf("invalid handler: %q", p.Handler)
 		}
 	}
 	return nil

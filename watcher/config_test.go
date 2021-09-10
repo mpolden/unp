@@ -2,16 +2,13 @@ package watcher
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 )
 
 func TestReadConfig(t *testing.T) {
-	path1 := tempDir()
-	defer os.RemoveAll(path1)
-	path2 := tempDir()
-	defer os.RemoveAll(path2)
+	path1 := t.TempDir()
+	path2 := t.TempDir()
 	jsonConfig := fmt.Sprintf(`
 {
   "Default": {

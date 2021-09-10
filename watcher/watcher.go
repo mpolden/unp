@@ -11,6 +11,7 @@ import (
 
 	"log"
 
+	"github.com/mpolden/unp/executil"
 	"github.com/mpolden/unp/pathutil"
 	"github.com/rjeczalik/notify"
 )
@@ -19,15 +20,25 @@ type Handler interface {
 	Handle(filename, postCommand string, remove bool) error
 }
 
+type scriptHandler struct{}
+
+func (h *scriptHandler) Handle(filename, postCommand string, remove bool) error {
+	data := executil.CommandData{
+		Dir:  filepath.Dir(filename),
+		Base: filepath.Base(filename),
+		Name: filename,
+	}
+	return executil.Run(postCommand, data)
+}
+
 type Watcher struct {
-	config  Config
-	handler Handler
-	events  chan notify.EventInfo
-	signal  chan os.Signal
-	done    chan bool
-	log     *log.Logger
-	mu      sync.Mutex
-	wg      sync.WaitGroup
+	config Config
+	events chan notify.EventInfo
+	signal chan os.Signal
+	done   chan bool
+	log    *log.Logger
+	mu     sync.Mutex
+	wg     sync.WaitGroup
 }
 
 func (w *Watcher) handle(name string) error {
@@ -49,7 +60,7 @@ func (w *Watcher) handle(name string) error {
 		}
 		return fmt.Errorf("no match found: %s", name)
 	}
-	return w.handler.Handle(name, p.PostCommand, p.Remove)
+	return p.handler.Handle(name, p.PostCommand, p.Remove)
 }
 
 func (w *Watcher) watch() {
@@ -156,18 +167,17 @@ func (w *Watcher) Stop() {
 	w.done <- true
 }
 
-func New(cfg Config, handler Handler, log *log.Logger) *Watcher {
+func New(cfg Config, log *log.Logger) *Watcher {
 	// Buffer events so that we don't miss any
 	events := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sig)
 	return &Watcher{
-		config:  cfg,
-		events:  events,
-		log:     log,
-		handler: handler,
-		signal:  sig,
-		done:    done,
+		config: cfg,
+		events: events,
+		log:    log,
+		signal: sig,
+		done:   done,
 	}
 }

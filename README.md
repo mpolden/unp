@@ -79,8 +79,8 @@ option:
 
 Variable | Description                                    | Example
 -------- | ---------------------------------------------- | -------
-`Base`   | Basename of the archive file                   | `baz.rar`
-`Dir`    | Directory holding the archive file             | `/tmp/foo/bar`
+`Base`   | Basename of the file triggering the event      | `baz.rar`
+`Dir`    | Directory holding the file                     | `/tmp/foo/bar`
 `Name`   | Full path to archive file triggering the event | `/tmp/foo/bar/baz.rar`
 
 The template is compiled using the
