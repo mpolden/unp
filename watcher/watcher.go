@@ -16,6 +16,8 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
+const notifyFlag = notify.Write | notify.Rename
+
 type Handler interface {
 	Handle(filename, postCommand string, remove bool) error
 }
@@ -66,7 +68,7 @@ func (w *Watcher) handle(name string) error {
 func (w *Watcher) watch() {
 	for _, path := range w.config.Paths {
 		rpath := filepath.Join(path.Name, "...")
-		if err := notify.Watch(rpath, w.events, writeFlag); err != nil {
+		if err := notify.Watch(rpath, w.events, notifyFlag); err != nil {
 			w.log.Printf("failed to watch %s: %s", rpath, err)
 		} else {
 			w.log.Printf("watching %s recursively", path.Name)
