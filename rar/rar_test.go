@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -23,43 +22,6 @@ func testDir(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return filepath.Join(wd, "testdata")
-}
-
-func TestCmdFrom(t *testing.T) {
-	tmpl := "tar -xf {{.Name}} {{.Base}} {{.Dir}}"
-	values := event{
-		Name: "/foo/bar/baz.rar",
-		Base: "baz.rar",
-		Dir:  "/foo/bar",
-	}
-	cmd, err := cmdFrom(tmpl, values)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cmd.Dir != values.Dir {
-		t.Fatalf("want %q, got %q", values.Dir, cmd.Dir)
-	}
-	if !strings.Contains(cmd.Path, string(os.PathSeparator)) {
-		t.Fatalf("want %q to contain a path separator", cmd.Path)
-	}
-	if cmd.Args[0] != "tar" {
-		t.Fatalf("want %q, got %q", "tar", cmd.Args[0])
-	}
-	if cmd.Args[1] != "-xf" {
-		t.Fatalf("want %q, got %q", "-xf", cmd.Args[1])
-	}
-	if cmd.Args[2] != values.Name {
-		t.Fatalf("want %q, got %q", values.Name, cmd.Args[2])
-	}
-	if cmd.Args[3] != values.Base {
-		t.Fatalf("want %q, got %q", values.Base, cmd.Args[3])
-	}
-	if cmd.Args[4] != values.Dir {
-		t.Fatalf("want %q, got %q", values.Base, cmd.Args[4])
-	}
-	if _, err := cmdFrom("tar -xf {{.Bar}}", values); err == nil {
-		t.Fatal("want error")
-	}
 }
 
 func TestFindFirstRAR(t *testing.T) {

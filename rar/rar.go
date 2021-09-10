@@ -1,18 +1,15 @@
 package rar
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
-	"text/template"
 
 	"github.com/mpolden/sfv"
+	"github.com/mpolden/unp/executil"
 	"github.com/nwaples/rardecode"
 )
 
@@ -142,40 +139,6 @@ func (h *Handler) remove(sfv *sfv.SFV) error {
 	return os.Remove(sfv.Path)
 }
 
-func cmdFrom(tmpl string, ev event) (*exec.Cmd, error) {
-	t, err := template.New("cmd").Parse(tmpl)
-	if err != nil {
-		return nil, err
-	}
-	var b bytes.Buffer
-	if err := t.Execute(&b, ev); err != nil {
-		return nil, err
-	}
-	argv := strings.Split(b.String(), " ")
-	if len(argv) == 0 {
-		return nil, fmt.Errorf("template compiled to empty command")
-	}
-	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Dir = ev.Dir
-	return cmd, nil
-}
-
-func runCmd(command string, e event) error {
-	if command == "" {
-		return nil
-	}
-	cmd, err := cmdFrom(command, e)
-	if err != nil {
-		return err
-	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("stderr: %q: %w", stderr.String(), err)
-	}
-	return nil
-}
-
 func NewHandler() *Handler { return &Handler{cache: make(map[string]bool)} }
 
 func (h *Handler) verify(sfv *sfv.SFV) (int, int, error) {
@@ -219,7 +182,8 @@ func (h *Handler) Handle(name, postCommand string, removeRARs bool) error {
 			return fmt.Errorf("removal failed: %s: %w", ev.Dir, err)
 		}
 	}
-	if err := runCmd(postCommand, ev); err != nil {
+	cd := executil.CommandData{Base: ev.Base, Dir: ev.Dir, Name: ev.Name}
+	if err := executil.Run(postCommand, cd); err != nil {
 		return fmt.Errorf("post-process command failed: %s: %w", ev.Dir, err)
 	}
 	return nil
