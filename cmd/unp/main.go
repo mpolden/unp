@@ -3,14 +3,25 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"os"
 
+	"github.com/mattn/go-isatty"
+	"github.com/mpolden/unp/logutil"
 	"github.com/mpolden/unp/watcher"
 )
 
 func init() {
+	var out io.Writer
+	if stderr := os.Stderr; isatty.IsTerminal(stderr.Fd()) {
+		out = logutil.NewUniqueWriter(stderr)
+	} else {
+		out = stderr
+	}
 	log.SetPrefix("unp: ")
 	log.SetFlags(0)
+	log.SetOutput(out)
 }
 
 func main() {
