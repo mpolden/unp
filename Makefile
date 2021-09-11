@@ -2,7 +2,7 @@ XGOARCH := amd64
 XGOOS := linux
 XBIN := $(XGOOS)_$(XGOARCH)/unp
 
-all: test vet install
+all: test vet checkfmt install
 
 fmt:
 	go fmt ./...
@@ -15,6 +15,9 @@ vet:
 
 install:
 	go install ./...
+
+checkfmt:
+	@bash -c "diff --line-format='%L' <(echo -n) <(gofmt -l .)"
 
 xinstall:
 	env GOOS=$(XGOOS) GOARCH=$(XGOARCH) go install ./...
