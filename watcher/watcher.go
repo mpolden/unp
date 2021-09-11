@@ -2,14 +2,13 @@ package watcher
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
 	"path/filepath"
-
-	"log"
 
 	"github.com/mpolden/unp/executil"
 	"github.com/mpolden/unp/pathutil"
@@ -38,7 +37,6 @@ type Watcher struct {
 	events chan notify.EventInfo
 	signal chan os.Signal
 	done   chan bool
-	log    *log.Logger
 	mu     sync.Mutex
 	wg     sync.WaitGroup
 }
@@ -69,9 +67,9 @@ func (w *Watcher) watch() {
 	for _, path := range w.config.Paths {
 		rpath := filepath.Join(path.Name, "...")
 		if err := notify.Watch(rpath, w.events, notifyFlag); err != nil {
-			w.log.Printf("failed to watch %s: %s", rpath, err)
+			log.Printf("failed to watch %s: %s", rpath, err)
 		} else {
-			w.log.Printf("watching %s recursively", path.Name)
+			log.Printf("watching %s recursively", path.Name)
 		}
 	}
 }
@@ -83,7 +81,7 @@ func (w *Watcher) reload() {
 		w.config = cfg
 		w.watch()
 	} else {
-		w.log.Printf("failed to read config: %s", err)
+		log.Printf("failed to read config: %s", err)
 	}
 }
 
@@ -97,12 +95,12 @@ func (w *Watcher) rescan() {
 				return nil
 			}
 			if err := w.handle(path); err != nil {
-				w.log.Print(err)
+				log.Print(err)
 			}
 			return nil
 		})
 		if err != nil {
-			w.log.Printf("failed to rescan %s: %s", p.Name, err)
+			log.Printf("failed to rescan %s: %s", p.Name, err)
 		}
 	}
 }
@@ -116,13 +114,13 @@ func (w *Watcher) readSignal() {
 			w.mu.Lock()
 			switch s {
 			case syscall.SIGUSR1:
-				w.log.Printf("received %s: rescanning watched directories", s)
+				log.Printf("received %s: rescanning watched directories", s)
 				w.rescan()
 			case syscall.SIGUSR2:
-				w.log.Printf("received %s: reloading configuration", s)
+				log.Printf("received %s: reloading configuration", s)
 				w.reload()
 			case syscall.SIGTERM, syscall.SIGINT:
-				w.log.Printf("received %s: shutting down", s)
+				log.Printf("received %s: shutting down", s)
 				w.Stop()
 			}
 			w.mu.Unlock()
@@ -138,7 +136,7 @@ func (w *Watcher) readEvent() {
 		case ev := <-w.events:
 			w.mu.Lock()
 			if err := w.handle(ev.Path()); err != nil {
-				w.log.Print(err)
+				log.Print(err)
 			}
 			w.mu.Unlock()
 		}
@@ -169,7 +167,7 @@ func (w *Watcher) Stop() {
 	w.done <- true
 }
 
-func New(cfg Config, log *log.Logger) *Watcher {
+func New(cfg Config) *Watcher {
 	// Buffer events so that we don't miss any
 	events := make(chan notify.EventInfo, cfg.BufferSize)
 	sig := make(chan os.Signal, 1)
@@ -178,7 +176,6 @@ func New(cfg Config, log *log.Logger) *Watcher {
 	return &Watcher{
 		config: cfg,
 		events: events,
-		log:    log,
 		signal: sig,
 		done:   done,
 	}

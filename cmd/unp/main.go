@@ -4,22 +4,28 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/mpolden/unp/watcher"
 )
 
+func init() {
+	log.SetPrefix("unp: ")
+	log.SetFlags(0)
+}
+
 func main() {
-	configFile := flag.String("f", "~/.unprc", "Path to config file")
-	test := flag.Bool("t", false, "Test and print config")
+	var test bool
+	var configFile string
+	flag.StringVar(&configFile, "f", "~/.unprc", "Path to config file")
+	flag.BoolVar(&test, "t", false, "Test and print config")
 	flag.Parse()
 
-	cfg, err := watcher.ReadConfig(*configFile)
+	cfg, err := watcher.ReadConfig(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if *test {
+	if test {
 		json, err := cfg.JSON()
 		if err != nil {
 			log.Fatal(err)
@@ -28,7 +34,6 @@ func main() {
 		return
 	}
 
-	log := log.New(os.Stderr, "unp: ", 0)
-	w := watcher.New(cfg, log)
+	w := watcher.New(cfg)
 	w.Start()
 }

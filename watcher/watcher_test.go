@@ -42,8 +42,8 @@ func testWatcher(dir string, handler Handler) *Watcher {
 		BufferSize: 10,
 		Paths:      []Path{{handler: handler, Name: dir, MaxDepth: 100, Patterns: []string{"*"}}},
 	}
-	log := log.New(io.Discard, "", 0)
-	return New(cfg, log)
+	log.SetOutput(io.Discard)
+	return New(cfg)
 }
 
 func TestWatching(t *testing.T) {
