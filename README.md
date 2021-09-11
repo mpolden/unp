@@ -10,16 +10,11 @@ unpacked.
 ## Usage
 
 ```
-unp -h
-Usage:
-  unp [OPTIONS]
-
-Application Options:
-  -f, --config=FILE    Config file (default: ~/.unprc)
-  -t, --test           Test and print config
-
-Help Options:
-  -h, --help           Show this help message
+$ unp -h
+Usage of unp:
+  -f string
+    	Path to config file (default "~/.unprc")
+  -t	Test and print config
 ```
 
 ## Example config
@@ -30,6 +25,7 @@ Help Options:
   "Paths": [
     {
       "Name": "/home/foo/videos",
+      "Handler": "rar",
       "MinDepth": 4,
       "MaxDepth": 5,
       "SkipHidden": true,
@@ -47,30 +43,35 @@ Help Options:
 ## Configuration options
 
 `BufferSize` sets the maximum number of file system events to queue in memory.
-This should be large enough to store any events that may occur while archives
-are unpacked. The default value is `1024`.
+This should be large enough to store any events that occur while an event is
+processed by its handler. The default value is `1024`.
 
 `Paths` is an array of paths to watch.
 
 `Name` is the path that should be watched.
 
-`MinDepth` sets the minimum depth allowed to trigger unpacking. A `MinDepth` of
-`4` would allow archive files in `/home/foo/videos/bar` to trigger an event.
+`Handler` sets the handler to use. This can be either `rar` (default if
+unspecified) or `script`. The `rar` handler automatically unpacks RAR archives
+and uses SFV files to determine completeness. The `script` handler calls the
+specified `PostCommand` without any processing or completeness checks.
 
-`MaxDepth` sets the maximum depth allowed to trigger unpacking. A `MaxDepth` of
-`5` would allow archives files in `/home/foo/videos/bar/baz` to trigger an
-event.
+`MinDepth` sets the minimum depth allowed to trigger the handler. A `MinDepth`
+of `4` would allow files in `/home/foo/videos/bar` to trigger an event.
+
+`MaxDepth` sets the maximum depth allowed to trigger the handler. A `MaxDepth`
+of `5` would allow files in `/home/foo/videos/bar/baz` to trigger an event.
 
 `SkipHidden` determines whether events for hidden files (files prefix with `.`)
 should be ignored.
 
-`Patterns` sets the wildcard patterns that a file needs to match to be able to
-trigger an event.
+`Patterns` sets the wildcard patterns that a file needs to match to trigger an
+event.
 
-`Remove` determines whether archives and SFV files should be deleted after
-unpacking.
+`Remove` determines whether the handler should delete files after processing
+them.
 
-`PostCommand` is an optional command to be run after unpacking completes.
+`PostCommand` is an optional command to run after the handler processing
+completes.
 
 ## Command templates
 
@@ -94,8 +95,8 @@ archive is located, equal to `{{.Dir}}`.
 
 `unp` reacts to the following signals:
 
-`SIGUSR1` triggers a re-scan which walks all configured paths and triggers
-unpacking for any archives that are found.
+`SIGUSR1` triggers a re-scan which walks all configured paths and triggers its
+handler for any matching files that are found.
 
 `SIGUSR2` reloads configuration from disk. This can be used to watch new paths
 without restarting the program.
