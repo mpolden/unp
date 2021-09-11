@@ -1,6 +1,6 @@
 module github.com/mpolden/unp
 
-go 1.13
+go 1.17
 
 require (
 	github.com/mpolden/sfv v0.9.0
