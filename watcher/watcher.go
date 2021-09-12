@@ -15,8 +15,6 @@ import (
 	"github.com/rjeczalik/notify"
 )
 
-const notifyFlag = notify.Write | notify.Rename
-
 type Handler interface {
 	Handle(filename, postCommand string, remove bool) error
 }
