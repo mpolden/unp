@@ -4,4 +4,4 @@ package watcher
 
 import "github.com/rjeczalik/notify"
 
-const notifyFlag = notify.Write | notify.Rename
+const notifyFlag = notify.Write
