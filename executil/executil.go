@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -28,7 +29,9 @@ func compileCommand(tmpl string, data CommandData) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("template compiled to empty command")
 	}
 	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Dir = data.Dir
+	if _, err := os.Stat(data.Dir); err == nil {
+		cmd.Dir = data.Dir
+	}
 	return cmd, nil
 }
 

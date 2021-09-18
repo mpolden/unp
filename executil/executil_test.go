@@ -2,16 +2,18 @@ package executil
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestCompileCommand(t *testing.T) {
 	tmpl := "tar -xf {{.Name}} {{.Base}} {{.Dir}}"
+	dir := t.TempDir()
 	data := CommandData{
-		Name: "/foo/bar/baz.rar",
+		Name: filepath.Join(dir, "baz.rar"),
 		Base: "baz.rar",
-		Dir:  "/foo/bar",
+		Dir:  dir,
 	}
 	cmd, err := compileCommand(tmpl, data)
 	if err != nil {
