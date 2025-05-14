@@ -2,10 +2,7 @@ XGOARCH := amd64
 XGOOS := linux
 XBIN := $(XGOOS)_$(XGOARCH)/unp
 
-all: test vet checkfmt install
-
-fmt:
-	go fmt ./...
+all: checkfmt vet test install
 
 test:
 	go test ./...
@@ -13,11 +10,14 @@ test:
 vet:
 	go vet ./...
 
+checkfmt:
+	@sh -c "test -z $$(gofmt -l .)" || { echo "one or more files need to be formatted: try make fmt to fix this automatically"; exit 1; }
+
+fmt:
+	gofmt -w .
+
 install:
 	go install ./...
-
-checkfmt:
-	@bash -c "diff --line-format='%L' <(echo -n) <(gofmt -l .)"
 
 xinstall:
 	env GOOS=$(XGOOS) GOARCH=$(XGOARCH) go install ./...
