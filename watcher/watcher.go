@@ -86,7 +86,9 @@ func (w *Watcher) reload() {
 func (w *Watcher) rescan() {
 	for _, p := range w.config.Paths {
 		err := filepath.Walk(p.Name, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			} else if err != nil {
 				return err
 			}
 			if info == nil || !info.Mode().IsRegular() {
