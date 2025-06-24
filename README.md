@@ -55,8 +55,9 @@ unspecified) or `script`. The `rar` handler automatically unpacks RAR archives
 and uses SFV files to determine completeness. The `script` handler calls the
 specified `PostCommand` without any processing or completeness checks.
 
-`MinDepth` sets the minimum depth allowed to trigger the handler. A `MinDepth`
-of `4` would allow files in `/home/foo/videos/bar` to trigger an event.
+`MinDepth` sets the minimum path depth allowed to trigger the handler. A
+`MinDepth` of `4` would allow the path `/home/foo/videos/bar.mkv` to trigger an
+event. Path depth counts all path segments, including the file.
 
 `MaxDepth` sets the maximum depth allowed to trigger the handler. A `MaxDepth`
 of `5` would allow files in `/home/foo/videos/bar/baz` to trigger an event.
