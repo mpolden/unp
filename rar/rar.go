@@ -10,7 +10,7 @@ import (
 
 	"github.com/mpolden/sfv"
 	"github.com/mpolden/unp/executil"
-	"github.com/nwaples/rardecode"
+	"github.com/nwaples/rardecode/v2"
 )
 
 var rarPartRE = regexp.MustCompile(`\.part0*(\d+)\.rar$`)
@@ -72,7 +72,7 @@ func chtimes(name string, header *rardecode.FileHeader) error {
 }
 
 func unpack(filename string) error {
-	r, err := rardecode.OpenReader(filename, "")
+	r, err := rardecode.OpenReader(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %w", filename, err)
 	}
