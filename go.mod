@@ -3,10 +3,10 @@ module github.com/mpolden/unp
 go 1.21
 
 require (
-	github.com/mattn/go-isatty v0.0.20
+	github.com/mattn/go-isatty v0.0.22
 	github.com/mpolden/sfv v0.9.0
 	github.com/nwaples/rardecode/v2 v2.2.2
 	github.com/rjeczalik/notify v0.9.3
 )
 
-require golang.org/x/sys v0.8.0 // indirect
+require golang.org/x/sys v0.28.0 // indirect
