@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mpolden/sfv v0.9.0
-	github.com/nwaples/rardecode/v2 v2.2.3
+	github.com/nwaples/rardecode/v2 v2.2.5
 	github.com/rjeczalik/notify v0.9.3
 )
 
